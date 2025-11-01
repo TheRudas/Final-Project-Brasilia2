@@ -36,7 +36,8 @@ public class User {
     @Column(name = "user_role")
     private UserRole role;
 
-    //TO DO: Status
+    @Column(name = "user_status",nullable = false)
+    private boolean status;
 
     @Column(name = "user_password_hash", nullable = false)
     private String passwordHash;

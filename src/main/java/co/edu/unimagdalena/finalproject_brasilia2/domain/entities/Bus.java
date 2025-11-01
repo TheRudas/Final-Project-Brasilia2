@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Entity
 @AllArgsConstructor
@@ -26,7 +24,8 @@ public class Bus {
     private Integer capacity;
 
     @Column(nullable = false)
-    private List<String> amenities;
+    private String amenities; //next to map
 
-    //TO DO: Status.
+    @Column(name = "bus_status", nullable = false)
+    private boolean status;
 }
