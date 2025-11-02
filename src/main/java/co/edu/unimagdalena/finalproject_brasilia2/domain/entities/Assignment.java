@@ -32,7 +32,7 @@ public class Assignment {
     @JoinColumn(name = "dispatcher_id", nullable = false)
     private User dispatcher;
 
-    @Column(name = "check_list_OK", nullable = false)
+    @Column(name = "checklist_Ok", nullable = false)
     private boolean checkListOk;
 
     @Column(name = "assigned_at", nullable = false)

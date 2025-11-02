@@ -25,7 +25,7 @@ public class Stop {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(name = "stop_order", nullable = false)
     private Integer order;
 
     @Column(name = "stop_latitude")

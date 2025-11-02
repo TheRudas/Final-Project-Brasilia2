@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Data
@@ -29,7 +30,7 @@ public class Trip {
     private Bus bus;
 
     @Column(name = "date",nullable = false)
-    private OffsetDateTime date;
+    private LocalDate date; //Only saves trip's day, not specific hour or time
 
     @Column(name = "departure_time", nullable = false)
     private OffsetDateTime departureAt;

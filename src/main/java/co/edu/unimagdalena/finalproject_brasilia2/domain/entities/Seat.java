@@ -19,7 +19,7 @@ public class Seat {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "bus_Id", nullable = false)
+    @JoinColumn(name = "bus_id", nullable = false)
     private Bus bus;
 
     @Column(nullable = false, name = "seat_number")

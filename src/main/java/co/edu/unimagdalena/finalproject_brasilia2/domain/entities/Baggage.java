@@ -23,8 +23,8 @@ public class Baggage {
     @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
 
-    @Column(name = "weight_kg", nullable = false)
-    private Double weightKg;
+    @Column(name = "weight_kg", nullable = false, precision = 5, scale = 2)
+    private BigDecimal weightKg;
 
     @Column(nullable = false,  precision = 10, scale = 2)
     private BigDecimal fee;

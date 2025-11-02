@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -30,10 +32,10 @@ public class Route {
     @Column(nullable = false)
     private String destination;
 
-    @Column(nullable = false)
-    private Double distanceKm;
+    @Column(name = "distance_km", nullable = false)
+    private BigDecimal distanceKm;
 
-    @Column(nullable = false)
+    @Column(name = "duration_min", nullable = false)
     private Integer durationMin;
 
 }
