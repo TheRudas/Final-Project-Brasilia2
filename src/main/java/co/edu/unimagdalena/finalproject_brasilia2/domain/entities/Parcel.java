@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Entity
 @AllArgsConstructor
@@ -43,7 +45,7 @@ public class Parcel {
     private Stop toStop;
 
     @Column(nullable = false,  scale = 2, precision = 10)
-    private Double price;
+    private BigDecimal price;
 
     @Column(name = "parcel_status", nullable = false)
     @Enumerated(EnumType.STRING)

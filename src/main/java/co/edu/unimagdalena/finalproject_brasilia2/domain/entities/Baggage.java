@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Entity
 @AllArgsConstructor
@@ -25,7 +27,7 @@ public class Baggage {
     private Double weightKg;
 
     @Column(nullable = false,  precision = 10, scale = 2)
-    private Double fee;
+    private BigDecimal fee;
 
     @Column(name = "tag_code", nullable = false, unique = true, length = 15) //15 'cause I want
     private String tagCode;

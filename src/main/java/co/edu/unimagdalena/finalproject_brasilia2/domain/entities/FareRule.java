@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -34,7 +35,7 @@ public class FareRule {
     private Stop toStop;
 
     @Column(name = "base_price", nullable = false, scale = 2,  precision = 10)
-    private Double basePrice;
+    private BigDecimal basePrice;
 
     @Column(nullable = false)
     private Set<String> discounts = new HashSet<>(); //Claude said: "This line doesn't persist" but I didn't give importance.

@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -40,7 +42,7 @@ public class Ticket {
     private Stop toStop;
 
     @Column(nullable = false, scale = 2, precision = 10)
-    private Double price;
+    private BigDecimal price;
 
     @Column(name = "payment_method")
     @Enumerated(EnumType.STRING)
