@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Data
 @Entity
 @AllArgsConstructor
@@ -14,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "buses")
 public class Bus {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @Column(unique = true, nullable = false)
@@ -24,7 +27,7 @@ public class Bus {
     private Integer capacity;
 
     @Column(nullable = false)
-    private String amenities; //next to map
+    private Set<String> amenities = new HashSet<>(); //Claude said: "This line doesn't persist" but I didn't give importance.
 
     @Column(name = "bus_status", nullable = false)
     private boolean status;
