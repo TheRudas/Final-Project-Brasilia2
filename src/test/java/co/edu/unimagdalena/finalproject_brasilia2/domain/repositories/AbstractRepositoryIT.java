@@ -1,4 +1,4 @@
-package co.edu.unimagdalena.finalproject_brasilia2.domine.repositories;
+package co.edu.unimagdalena.finalproject_brasilia2.domain.repositories;
 
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;

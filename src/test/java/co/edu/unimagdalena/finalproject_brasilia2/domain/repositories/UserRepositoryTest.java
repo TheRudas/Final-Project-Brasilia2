@@ -1,15 +1,15 @@
-package co.edu.unimagdalena.finalproject_brasilia2.domine.repositories;
+package co.edu.unimagdalena.finalproject_brasilia2.domain.repositories;
 
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.User;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.UserRole;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.UserRepository;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.time.OffsetDateTime;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class UserRepositoryTest extends AbstractRepositoryIT{
     @Autowired
@@ -23,26 +23,18 @@ public class UserRepositoryTest extends AbstractRepositoryIT{
         // Clean before each (insert davoo meme)
         userRepository.deleteAll();
 
-        passenger = User.builder()
-                .name("Cold Menares")
-                .email("coldmenares@mail.com")
-                .phone("3001112222")
-                .role(UserRole.PASSENGER)
-                .build();
+        passenger = User.builder().name("Cold Menares").email("coldmenares@mail.com").phone("3001112222").role(UserRole.PASSENGER)
+                .status(true).passwordHash("").createdAt(OffsetDateTime.now().minusHours(2)).build();
 
-        driver = User.builder()
-                .name("Pedro")
-                .email("pedro@mail.com")
-                .phone("3003334444")
-                .role(UserRole.DRIVER)
-                .build();
+        driver = User.builder().name("Pedro").email("pedro@mail.com").phone("3003334444").role(UserRole.DRIVER)
+                .status(true).passwordHash("").createdAt(OffsetDateTime.now().minusHours(3)).build();
 
         clerk = User.builder()
                 .name("Ana")
                 .email("ana@mail.com")
                 .phone("3005556666")
                 .role(UserRole.CLERK)
-                .build();
+                .status(true).passwordHash("").createdAt(OffsetDateTime.now().minusHours(4)).build();
     }
 
     @Test
@@ -99,7 +91,7 @@ public class UserRepositoryTest extends AbstractRepositoryIT{
         var drivers = userRepository.findByRole(UserRole.DRIVER);
 
         // Then
-        assertThat(passengers).hasSize(1).extracting(User::getName).containsExactlyInAnyOrder("Juan");
+        assertThat(passengers).hasSize(1).extracting(User::getName).containsExactlyInAnyOrder("Cold Menares");
         assertThat(drivers).hasSize(1).extracting(User::getName).containsExactly("Pedro");
     }
 }
