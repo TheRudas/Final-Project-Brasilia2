@@ -1,11 +1,7 @@
 package co.edu.unimagdalena.finalproject_brasilia2.domain.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
@@ -17,6 +13,7 @@ import java.util.Set;
 @Entity
 @Table(name = "fare_rules")
 public class FareRule {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "fare_rule_id", nullable = false)
@@ -34,13 +31,14 @@ public class FareRule {
     @JoinColumn(name = "to_stop_id", nullable = false)
     private Stop toStop;
 
-    @Column(name = "base_price", nullable = false, scale = 2,  precision = 10)
+    @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal basePrice;
 
-    @Column(nullable = false)
-    private Set<String> discounts = new HashSet<>(); //Claude said: "This line doesn't persist" but I didn't give importance.
+    @ElementCollection
+    @CollectionTable(name = "fare_rule_discounts", joinColumns = @JoinColumn(name = "fare_rule_id"))
+    @Column(name = "discount")
+    private Set<String> discounts = new HashSet<>();
 
     @Column(name = "dynamic_pricing", nullable = false)
     private boolean dynamicPricing;
-
 }
