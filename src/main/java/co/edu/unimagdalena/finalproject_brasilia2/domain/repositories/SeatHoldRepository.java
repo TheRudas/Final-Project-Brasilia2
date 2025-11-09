@@ -9,7 +9,7 @@ import java.util.List;
 public interface SeatHoldRepository extends JpaRepository<SeatHold, Long> {
     List<SeatHold> findByTripId(Long tripId);
     List<SeatHold> findByUserId(Long userId);
-    List<SeatHold> findByUserAndTripId(User userId, Long tripId);
-    boolean existsByUserAndTripId(User userId, Long tripId);
+    List<SeatHold> findByUserIdAndTripId(Long userId, Long tripId);
+    boolean existsByUserIdAndTripId(Long userId, Long tripId);
     boolean existsSeatHoldById(Long id);
 }

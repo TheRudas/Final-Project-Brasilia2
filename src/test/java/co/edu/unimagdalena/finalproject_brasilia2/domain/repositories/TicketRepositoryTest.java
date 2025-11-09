@@ -123,8 +123,8 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
                 .route(route)
                 .bus(bus)
                 .date(LocalDate.now())
-                .departureAt(OffsetDateTime.now().plusHours(2))
-                .arrivalEta(OffsetDateTime.now().plusHours(14))
+                .departureTime(OffsetDateTime.now().plusHours(2))
+                .arrivalTime(OffsetDateTime.now().plusHours(14))
                 .status(TripStatus.SCHEDULED)
                 .build();
         trip1 = tripRepository.save(trip1);
@@ -133,8 +133,8 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
                 .route(route)
                 .bus(bus)
                 .date(LocalDate.now().plusDays(1))
-                .departureAt(OffsetDateTime.now().plusHours(26))
-                .arrivalEta(OffsetDateTime.now().plusHours(38))
+                .departureTime(OffsetDateTime.now().plusHours(26))
+                .arrivalTime(OffsetDateTime.now().plusHours(38))
                 .status(TripStatus.SCHEDULED)
                 .build();
         trip2 = tripRepository.save(trip2);

@@ -7,8 +7,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ParcelRepository extends JpaRepository<Parcel, Long> {
-  List<Parcel> FindBySenderId(Long senderId);
-  List<Parcel> FindByReceiverId(Long receiverId);
-  List<Parcel> FindByTripId(Long tripId);
-  List<Parcel> FindByStatus(ParcelStatus status);
+    List<Parcel> findBySenderName(String senderName);
+
+    List<Parcel> findBySenderPhone(String senderPhone);
+
+    List<Parcel> findByReceiverName(String receiverName);
+
+    List<Parcel> findByReceiverPhone(String receiverPhone);
+
+    List<Parcel> findByStatus(ParcelStatus status);
+
+    List<Parcel> findByFromStopId(Long fromStopId);
+
+    List<Parcel> findByToStopId(Long toStopId);
 }

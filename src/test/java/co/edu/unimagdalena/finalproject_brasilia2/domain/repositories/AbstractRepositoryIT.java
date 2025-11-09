@@ -19,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public abstract class AbstractRepositoryIT {
     @Container
     @ServiceConnection
+
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
     //  Extension point if I need common helpers.

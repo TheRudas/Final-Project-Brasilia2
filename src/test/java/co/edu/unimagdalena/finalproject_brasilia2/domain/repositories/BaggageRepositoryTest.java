@@ -103,8 +103,8 @@ public class BaggageRepositoryTest extends AbstractRepositoryIT {
                 .route(route)
                 .bus(bus)
                 .date(LocalDate.now())
-                .departureAt(OffsetDateTime.now().plusHours(2))
-                .arrivalEta(OffsetDateTime.now().plusHours(14))
+                .departureTime(OffsetDateTime.now().plusHours(2))
+                .arrivalTime(OffsetDateTime.now().plusHours(14))
                 .status(TripStatus.SCHEDULED)
                 .build();
         tripRepository.save(trip);

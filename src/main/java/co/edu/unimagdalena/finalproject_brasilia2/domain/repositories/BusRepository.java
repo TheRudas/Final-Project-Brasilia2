@@ -6,11 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface BusRepository extends JpaRepository<Bus, Long> {
-    List<Bus> findBusById(Long BusId);
-    List<Bus> FindByPLateAndID(Long Id, String Plate);
-    List<Bus> FindByPLate(String Plate);
-    List<Bus> FindByStatus(String Status);
+    List<Bus> findByPlate(String plate);
+
+    List<Bus> findByPlateAndId(String plate, Long id);
+
+    List<Bus> findByStatus(boolean status);
+
     boolean existsByPlate(String plate);
-    boolean existsById(Long id);
+
     Long countByStatus(boolean status);
 }
