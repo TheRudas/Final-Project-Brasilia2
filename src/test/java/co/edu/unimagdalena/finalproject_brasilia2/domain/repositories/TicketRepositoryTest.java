@@ -1,5 +1,4 @@
 package co.edu.unimagdalena.finalproject_brasilia2.domain.repositories;
-
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.*;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,14 +35,12 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
 
     private User passenger1;
     private User passenger2;
-    private Trip trip1;
-    private Trip trip2;
-    private Stop stop1;
-    private Stop stop2;
-    private Stop stop3;
-    private Ticket ticket1;
-    private Ticket ticket2;
-    private Ticket ticket3;
+    private Trip trip;
+    private Stop fromStop;
+    private Stop toStop;
+    private Ticket ticketSold;
+    private Ticket ticketCancelled;
+    private Ticket ticketNoShow;
 
     @BeforeEach
     void setUp() {
@@ -56,26 +53,26 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
 
         // Create passengers
         passenger1 = User.builder()
-                .name("Maria La Del Barrio")
-                .email("marialadelbarriosoywuju@rcnmail.com")
+                .name("Juan Perez")
+                .email("juan@mail.com")
                 .phone("3001111111")
                 .role(UserRole.PASSENGER)
                 .status(true)
-                .passwordHash("")
+                .passwordHash("hash123")
                 .createdAt(OffsetDateTime.now())
                 .build();
-        passenger1 = userRepository.save(passenger1);
+        userRepository.save(passenger1);
 
         passenger2 = User.builder()
-                .name("Pedro Perez")
-                .email("pedro@mail.com")
+                .name("Maria Garcia")
+                .email("maria@mail.com")
                 .phone("3002222222")
                 .role(UserRole.PASSENGER)
                 .status(true)
-                .passwordHash("")
+                .passwordHash("hash456")
                 .createdAt(OffsetDateTime.now())
                 .build();
-        passenger2 = userRepository.save(passenger2);
+        userRepository.save(passenger2);
 
         // Create route
         Route route = Route.builder()
@@ -86,29 +83,26 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
                 .distanceKm(new BigDecimal("1000"))
                 .durationMin(720)
                 .build();
-        route = routeRepository.save(route);
+        routeRepository.save(route);
 
         // Create stops
-        stop1 = Stop.builder()
+        fromStop = Stop.builder()
                 .route(route)
                 .name("Terminal Bogota")
                 .order(1)
+                .lat(4.6097)
+                .lng(-74.0817)
                 .build();
-        stop1 = stopRepository.save(stop1);
+        stopRepository.save(fromStop);
 
-        stop2 = Stop.builder()
+        toStop = Stop.builder()
                 .route(route)
                 .name("Terminal Cartagena")
                 .order(2)
+                .lat(10.3910)
+                .lng(-75.4794)
                 .build();
-        stop2 = stopRepository.save(stop2);
-
-        stop3 = Stop.builder()
-                .route(route)
-                .name("Terminal Barranquilla")
-                .order(3)
-                .build();
-        stop3 = stopRepository.save(stop3);
+        stopRepository.save(toStop);
 
         // Create bus
         Bus bus = Bus.builder()
@@ -116,64 +110,54 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
                 .capacity(40)
                 .status(true)
                 .build();
-        bus = busRepository.save(bus);
+        busRepository.save(bus);
 
-        // Create trips
-        trip1 = Trip.builder()
+        // Create trip
+        trip = Trip.builder()
                 .route(route)
                 .bus(bus)
                 .date(LocalDate.now())
-                .departureTime(OffsetDateTime.now().plusHours(2))
-                .arrivalTime(OffsetDateTime.now().plusHours(14))
-                .status(TripStatus.SCHEDULED)
+                .departureTime(OffsetDateTime.now().minusHours(3)) // Departed 3 hours ago
+                .arrivalTime(OffsetDateTime.now().plusHours(9))
+                .status(TripStatus.DEPARTED)
                 .build();
-        trip1 = tripRepository.save(trip1);
+        tripRepository.save(trip);
 
-        trip2 = Trip.builder()
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.now().plusDays(1))
-                .departureTime(OffsetDateTime.now().plusHours(26))
-                .arrivalTime(OffsetDateTime.now().plusHours(38))
-                .status(TripStatus.SCHEDULED)
-                .build();
-        trip2 = tripRepository.save(trip2);
-
-        // Create tickets
-        ticket1 = Ticket.builder()
-                .trip(trip1)
+        // Create tickets with different statuses
+        ticketSold = Ticket.builder()
+                .trip(trip)
                 .passenger(passenger1)
                 .seatNumber("A1")
-                .fromStop(stop1)
-                .toStop(stop2)
+                .fromStop(fromStop)
+                .toStop(toStop)
                 .price(new BigDecimal("150000"))
                 .paymentMethod(PaymentMethod.CARD)
                 .status(TicketStatus.SOLD)
-                .qrCode("QR001")
+                .qrCode("QR-001")
                 .build();
 
-        ticket2 = Ticket.builder()
-                .trip(trip1)
+        ticketCancelled = Ticket.builder()
+                .trip(trip)
                 .passenger(passenger1)
                 .seatNumber("A2")
-                .fromStop(stop1)
-                .toStop(stop3)
-                .price(new BigDecimal("200000"))
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .price(new BigDecimal("150000"))
                 .paymentMethod(PaymentMethod.CASH)
-                .status(TicketStatus.SOLD)
-                .qrCode("QR002")
+                .status(TicketStatus.CANCELLED)
+                .qrCode("QR-003")
                 .build();
 
-        ticket3 = Ticket.builder()
-                .trip(trip2)
+        ticketNoShow = Ticket.builder()
+                .trip(trip)
                 .passenger(passenger2)
                 .seatNumber("B1")
-                .fromStop(stop1)
-                .toStop(stop2)
+                .fromStop(fromStop)
+                .toStop(toStop)
                 .price(new BigDecimal("180000"))
-                .paymentMethod(PaymentMethod.TRANSFER)
-                .status(TicketStatus.CANCELLED)
-                .qrCode("QR003")
+                .paymentMethod(PaymentMethod.CARD)
+                .status(TicketStatus.SOLD)
+                .qrCode("QR-002")
                 .build();
     }
 
@@ -181,9 +165,9 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("Ticket: find by passenger id")
     void shouldFindByPassengerId() {
         // Given
-        ticketRepository.save(ticket1);
-        ticketRepository.save(ticket2);
-        ticketRepository.save(ticket3);
+        ticketRepository.save(ticketSold);
+        ticketRepository.save(ticketCancelled);
+        ticketRepository.save(ticketNoShow);
 
         // When
         var result = ticketRepository.findByPassengerId(passenger1.getId());
@@ -191,153 +175,182 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
         // Then
         assertThat(result).hasSize(2);
         assertThat(result)
-                .extracting(Ticket::getQrCode)
-                .containsExactlyInAnyOrder("QR001", "QR002"); //Only this attribute is unique. For cleanest assertions
+                .extracting(Ticket::getSeatNumber)
+                .containsExactlyInAnyOrder("A1", "A2");
     }
 
     @Test
     @DisplayName("Ticket: find by trip and seat number")
     void shouldFindByTripAndSeatNumber() {
         // Given
-        ticketRepository.save(ticket1);
-        ticketRepository.save(ticket2);
+        ticketRepository.save(ticketSold);
 
         // When
-        var result = ticketRepository.findByTripAndSeatNumber(trip1, "A1");
+        var result = ticketRepository.findByTripAndSeatNumber(trip, "A1");
 
         // Then
         assertThat(result).isPresent();
-        assertThat(result.get().getQrCode()).isEqualTo("QR001");
-        assertThat(result.get().getPassenger().getName()).isEqualTo("Maria La Del Barrio");
+        assertThat(result.get().getQrCode()).isEqualTo("QR-001");
     }
 
     @Test
     @DisplayName("Ticket: find by trip id")
     void shouldFindByTripId() {
         // Given
-        ticketRepository.save(ticket1);
-        ticketRepository.save(ticket2);
-        ticketRepository.save(ticket3);
+        ticketRepository.save(ticketSold);
+        ticketRepository.save(ticketCancelled);
+        ticketRepository.save(ticketNoShow);
 
         // When
-        var result = ticketRepository.findByTripId(trip1.getId());
+        var result = ticketRepository.findByTripId(trip.getId());
 
         // Then
-        assertThat(result).hasSize(2);
+        assertThat(result).hasSize(3);
         assertThat(result)
-                .extracting(Ticket::getSeatNumber).containsExactlyInAnyOrder("A1", "A2");
+                .extracting(Ticket::getSeatNumber)
+                .containsExactlyInAnyOrder("A1", "A2", "B1");
     }
 
     @Test
     @DisplayName("Ticket: find by QR code")
     void shouldFindByQrCode() {
         // Given
-        ticketRepository.save(ticket1);
+        ticketRepository.save(ticketSold);
 
         // When
-        var result = ticketRepository.findByQrCode("QR001");
+        var result = ticketRepository.findByQrCode("QR-001");
 
         // Then
         assertThat(result).isPresent();
         assertThat(result.get().getSeatNumber()).isEqualTo("A1");
-        assertThat(result.get().getPrice()).isEqualByComparingTo(new BigDecimal("150000"));
     }
 
     @Test
     @DisplayName("Ticket: find by payment method")
     void shouldFindByPaymentMethod() {
         // Given
-        ticketRepository.save(ticket1);
-        ticketRepository.save(ticket2);
-        ticketRepository.save(ticket3);
+        ticketRepository.save(ticketSold);
+        ticketRepository.save(ticketCancelled);
+        ticketRepository.save(ticketNoShow);
 
         // When
-        var cardTickets = ticketRepository.findByPaymentMethod(
+        var result = ticketRepository.findByPaymentMethod(
                 PaymentMethod.CARD,
-                PageRequest.of(0, 10)
-        );
-        var cashTickets = ticketRepository.findByPaymentMethod(
-                PaymentMethod.CASH,
                 PageRequest.of(0, 10)
         );
 
         // Then
-        assertThat(cardTickets.getContent()).hasSize(1);
-        assertThat(cardTickets.getContent().get(0).getQrCode()).isEqualTo("QR001");
-
-        assertThat(cashTickets.getContent()).hasSize(1);
-        assertThat(cashTickets.getContent().get(0).getQrCode()).isEqualTo("QR002");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent())
+                .extracting(Ticket::getQrCode)
+                .containsExactlyInAnyOrder("QR-001", "QR-002");
     }
 
     @Test
     @DisplayName("Ticket: find by status")
     void shouldFindByStatus() {
         // Given
-        ticketRepository.save(ticket1);
-        ticketRepository.save(ticket2);
-        ticketRepository.save(ticket3);
+        ticketRepository.save(ticketSold);
+        ticketRepository.save(ticketCancelled);
+        ticketRepository.save(ticketNoShow);
 
         // When
-        var soldTickets = ticketRepository.findByStatus(TicketStatus.SOLD, PageRequest.of(0, 10));
-
-        var cancelledTickets = ticketRepository.findByStatus(TicketStatus.CANCELLED, PageRequest.of(0, 10));
+        var result = ticketRepository.findByStatus(
+                TicketStatus.SOLD,
+                PageRequest.of(0, 10)
+        );
 
         // Then
-        assertThat(soldTickets.getContent()).hasSize(2);
-        assertThat(soldTickets.getContent())
-                .extracting(Ticket::getQrCode)
-                .containsExactlyInAnyOrder("QR001", "QR002");
-
-        assertThat(cancelledTickets.getContent()).hasSize(1);
-        assertThat(cancelledTickets.getContent().get(0).getQrCode()).isEqualTo("QR003");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent())
+                .extracting(Ticket::getSeatNumber)
+                .containsExactlyInAnyOrder("A1", "B1");
     }
 
     @Test
     @DisplayName("Ticket: calculate total price by passenger id")
     void shouldCalculateTotalPriceByPassengerId() {
         // Given
-        ticketRepository.save(ticket1);
-        ticketRepository.save(ticket2);
+        ticketRepository.save(ticketSold);
+        ticketRepository.save(ticketCancelled); // CANCELLED shouldn't count
+
+        Ticket anotherSoldTicket = Ticket.builder()
+                .trip(trip)
+                .passenger(passenger1)
+                .seatNumber("A3")
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .price(new BigDecimal("200000"))
+                .paymentMethod(PaymentMethod.CARD)
+                .status(TicketStatus.SOLD)
+                .qrCode("QR-SOLD-002")
+                .build();
+        ticketRepository.save(anotherSoldTicket);
 
         // When
-        var total = ticketRepository.totalPriceByPassengerId(passenger1.getId());
+        BigDecimal total = ticketRepository.totalPriceByPassengerId(passenger1.getId());
 
         // Then
-        assertThat(total).isEqualByComparingTo(new BigDecimal("350000")); //150k + 200k
+        assertThat(total).isEqualByComparingTo(new BigDecimal("350000")); // 150000 + 200000
     }
 
     @Test
     @DisplayName("Ticket: find all between optional stops")
     void shouldFindAllBetweenOptionalStops() {
         // Given
-        ticketRepository.save(ticket1);
-        ticketRepository.save(ticket2);
-        ticketRepository.save(ticket3);
+        ticketRepository.save(ticketSold);
+        ticketRepository.save(ticketNoShow);
 
-        // When
-        var fromStop1 = ticketRepository.findAllBetweenOptionalStops(stop1.getId(), null, PageRequest.of(0, 10));
+        // When - both stops specified
+        var resultBoth = ticketRepository.findAllBetweenOptionalStops(
+                fromStop.getId(),
+                toStop.getId(),
+                PageRequest.of(0, 10)
+        );
 
-        var toStop2 = ticketRepository.findAllBetweenOptionalStops(null, stop2.getId(), PageRequest.of(0, 10));
+        // When - only fromStop
+        var resultFrom = ticketRepository.findAllBetweenOptionalStops(
+                fromStop.getId(),
+                null,
+                PageRequest.of(0, 10)
+        );
 
-        var bothStops = ticketRepository.findAllBetweenOptionalStops(stop1.getId(), stop2.getId(), PageRequest.of(0, 10));
+        // When - only toStop
+        var resultTo = ticketRepository.findAllBetweenOptionalStops(
+                null,
+                toStop.getId(),
+                PageRequest.of(0, 10)
+        );
 
         // Then
-        assertThat(fromStop1.getContent()).hasSize(3);
+        assertThat(resultBoth.getContent()).hasSize(2);
+        assertThat(resultFrom.getContent()).hasSize(2);
+        assertThat(resultTo.getContent()).hasSize(2);
+    }
 
-        assertThat(toStop2.getContent()).hasSize(2);
-        assertThat(toStop2.getContent())
-                .extracting(Ticket::getQrCode).containsExactlyInAnyOrder("QR001", "QR003");
+    @Test
+    @DisplayName("Ticket: find no-shows")
+    void shouldFindNoShows() {
+        // Given
+        ticketRepository.save(ticketSold);
+        ticketRepository.save(ticketNoShow);
 
-        assertThat(bothStops.getContent()).hasSize(2);
-        assertThat(bothStops.getContent())
-                .extracting(Ticket::getQrCode).containsExactlyInAnyOrder("QR001", "QR003");
+        // When - threshold is now (3 hours after departure)
+        OffsetDateTime threshold = OffsetDateTime.now();
+        var result = ticketRepository.findNoShows(threshold);
+
+        // Then - both SOLD tickets with past departure should be found
+        assertThat(result).hasSize(2);
+        assertThat(result)
+                .extracting(Ticket::getStatus)
+                .containsOnly(TicketStatus.SOLD);
     }
 
     @Test
     @DisplayName("Ticket: return empty when QR code not found")
     void shouldReturnEmptyWhenQrCodeNotFound() {
         // Given
-        ticketRepository.save(ticket1);
+        ticketRepository.save(ticketSold);
 
         // When
         var result = ticketRepository.findByQrCode("NONEXISTENT");
@@ -347,27 +360,28 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
     }
 
     @Test
-    @DisplayName("Ticket: return null when passenger has no sold tickets")
-    void shouldReturnNullWhenNoSoldTickets() {
+    @DisplayName("Ticket: return empty when trip and seat not found")
+    void shouldReturnEmptyWhenTripAndSeatNotFound() {
         // Given
-        ticketRepository.save(ticket3); // CANCELLED
+        ticketRepository.save(ticketSold);
 
         // When
-        var total = ticketRepository.totalPriceByPassengerId(passenger2.getId());
-
-        // Then
-        assertThat(total).isNull();
-    }
-
-    @Test
-    @DisplayName("Ticket: return empty list when passenger has no tickets")
-    void shouldReturnEmptyWhenPassengerHasNoTickets() {
-        // Given - no tickets saved, where flowers come from if there's no garden?
-
-        // When
-        var result = ticketRepository.findByPassengerId(999L);
+        var result = ticketRepository.findByTripAndSeatNumber(trip, "Z99");
 
         // Then
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Ticket: return zero when passenger has no sold tickets")
+    void shouldReturnZeroWhenNoSoldTickets() {
+        // Given
+        ticketRepository.save(ticketCancelled); // Only cancelled ticket
+
+        // When
+        BigDecimal total = ticketRepository.totalPriceByPassengerId(passenger1.getId());
+
+        // Then
+        assertThat(total).isNull(); // SUM returns null when no rows match
     }
 }

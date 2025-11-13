@@ -14,6 +14,8 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
     Optional<Route> findByName(String name);
     List<Route> findByOrigin(String origin);
     List<Route> findByDestination(String destination);
+    List<Route> findByDurationMinBetween(Integer min, Integer max);
+    Page<Route> findByDurationMinLessThanEqual(Integer min, Pageable pageable);
     List<Route> findByOriginAndDestination(String origin, String destination);
     Page<Route> findByDistanceKmLessThanEqual(BigDecimal distanceKm, Pageable pageable);
     Page<Route> findByDistanceKmGreaterThanEqual(BigDecimal distanceKm, Pageable pageable);

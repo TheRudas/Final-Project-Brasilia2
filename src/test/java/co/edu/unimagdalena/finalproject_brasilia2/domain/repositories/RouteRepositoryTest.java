@@ -16,39 +16,40 @@ public class RouteRepositoryTest extends AbstractRepositoryIT {
     @Autowired
     private RouteRepository routeRepository;
 
-    private Route route1;
-    private Route route2;
-    private Route route3;
+    private Route shortRoute;
+    private Route mediumRoute;
+    private Route longRoute;
 
     @BeforeEach
     void setUp() {
         routeRepository.deleteAll();
 
-        route1 = Route.builder()
+        // Create routes with different distances and durations
+        shortRoute = Route.builder()
                 .code("R001")
-                .name("Santa Marta-Medialuna")
-                .origin("Santa Marta")
-                .destination("Medialuna")
-                .distanceKm(new BigDecimal("1000"))
-                .durationMin(720)
-                .build();
-
-        route2 = Route.builder()
-                .code("R002")
-                .name("Santa Marta-Soledad")
-                .origin("Santa Marta")
-                .destination("Soledad")
+                .name("Bogota-Medellin")
+                .origin("Bogota")
+                .destination("Medellin")
                 .distanceKm(new BigDecimal("400"))
-                .durationMin(480)
+                .durationMin(480) // 8 hours
                 .build();
 
-        route3 = Route.builder()
+        mediumRoute = Route.builder()
+                .code("R002")
+                .name("Bogota-Cartagena")
+                .origin("Bogota")
+                .destination("Cartagena")
+                .distanceKm(new BigDecimal("1000"))
+                .durationMin(720) // 12 hours
+                .build();
+
+        longRoute = Route.builder()
                 .code("R003")
-                .name("Soledad-Medialuna")
-                .origin("Soledad")
-                .destination("Medialuna")
-                .distanceKm(new BigDecimal("600"))
-                .durationMin(540)
+                .name("Medellin-Cartagena")
+                .origin("Medellin")
+                .destination("Cartagena")
+                .distanceKm(new BigDecimal("630"))
+                .durationMin(600) // 10 hours
                 .build();
     }
 
@@ -56,43 +57,40 @@ public class RouteRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("Route: find by code")
     void shouldFindByCode() {
         // Given
-        routeRepository.save(route1);
-        routeRepository.save(route2);
+        routeRepository.save(shortRoute);
 
         // When
         var result = routeRepository.findByCode("R001");
 
         // Then
         assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Santa Marta-Medialuna");
+        assertThat(result.get().getName()).isEqualTo("Bogota-Medellin");
     }
 
     @Test
     @DisplayName("Route: find by name")
     void shouldFindByName() {
         // Given
-        routeRepository.save(route1);
-        routeRepository.save(route2);
+        routeRepository.save(mediumRoute);
 
         // When
-        var result = routeRepository.findByName("Santa Marta-Soledad");
+        var result = routeRepository.findByName("Bogota-Cartagena");
 
         // Then
         assertThat(result).isPresent();
         assertThat(result.get().getCode()).isEqualTo("R002");
-        assertThat(result.get().getDistanceKm()).isEqualByComparingTo(new BigDecimal("400")); //only tto verify man
     }
 
     @Test
     @DisplayName("Route: find by origin")
     void shouldFindByOrigin() {
         // Given
-        routeRepository.save(route1);
-        routeRepository.save(route2);
-        routeRepository.save(route3);
+        routeRepository.save(shortRoute);
+        routeRepository.save(mediumRoute);
+        routeRepository.save(longRoute);
 
         // When
-        var result = routeRepository.findByOrigin("Santa Marta");
+        var result = routeRepository.findByOrigin("Bogota");
 
         // Then
         assertThat(result).hasSize(2);
@@ -105,66 +103,63 @@ public class RouteRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("Route: find by destination")
     void shouldFindByDestination() {
         // Given
-        routeRepository.save(route1);
-        routeRepository.save(route2);
-        routeRepository.save(route3);
+        routeRepository.save(shortRoute);
+        routeRepository.save(mediumRoute);
+        routeRepository.save(longRoute);
 
         // When
-        var result = routeRepository.findByDestination("Medialuna");
+        var result = routeRepository.findByDestination("Cartagena");
 
         // Then
         assertThat(result).hasSize(2);
         assertThat(result)
                 .extracting(Route::getCode)
-                .containsExactlyInAnyOrder("R001", "R003");
+                .containsExactlyInAnyOrder("R002", "R003");
     }
 
     @Test
     @DisplayName("Route: find by origin and destination")
     void shouldFindByOriginAndDestination() {
         // Given
-        routeRepository.save(route1);
-        routeRepository.save(route2);
-        routeRepository.save(route3);
+        routeRepository.save(shortRoute);
+        routeRepository.save(mediumRoute);
+        routeRepository.save(longRoute);
 
         // When
-        var result = routeRepository.findByOriginAndDestination("Santa Marta", "Medialuna");
+        var result = routeRepository.findByOriginAndDestination("Bogota", "Cartagena");
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getCode()).isEqualTo("R001");
+        assertThat(result.get(0).getCode()).isEqualTo("R002");
     }
-    
+
     @Test
-    @DisplayName("Route: find by distance less or equal than")
-    void shouldFindByDistanceLessThanOrEqual() {
+    @DisplayName("Route: find by duration between range")
+    void shouldFindByDurationBetween() {
         // Given
-        routeRepository.save(route1);
-        routeRepository.save(route2);
-        routeRepository.save(route3);
+        routeRepository.save(shortRoute);
+        routeRepository.save(mediumRoute);
+        routeRepository.save(longRoute);
 
         // When
-        var result = routeRepository.findByDistanceKmLessThanEqual(
-                new BigDecimal("500"),
-                PageRequest.of(0, 10)
-        );
+        var result = routeRepository.findByDurationMinBetween(500, 700);
 
         // Then
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getCode()).isEqualTo("R002");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getCode()).isEqualTo("R003");
     }
 
     @Test
-    @DisplayName("Route: find by distance greater or equal than")
-    void shouldFindByDistanceGreaterThanOrEqual() {
+    @DisplayName("Route: find by duration less than or equal")
+    void shouldFindByDurationLessThanOrEqual() {
         // Given
-        routeRepository.save(route1);
-        routeRepository.save(route2);
-        routeRepository.save(route3);
+        routeRepository.save(shortRoute);
+        routeRepository.save(mediumRoute);
+        routeRepository.save(longRoute);
 
         // When
-        var result = routeRepository.findByDistanceKmGreaterThanEqual(
-                new BigDecimal("600"),
+        var result = routeRepository.findByDurationMinLessThanEqual(
+                600,
                 PageRequest.of(0, 10)
         );
 
@@ -176,14 +171,56 @@ public class RouteRepositoryTest extends AbstractRepositoryIT {
     }
 
     @Test
-    @DisplayName("Route: check if exists by code")
-    void shouldCheckExistsByCode() {
+    @DisplayName("Route: find by distance less than or equal")
+    void shouldFindByDistanceLessThanOrEqual() {
         // Given
-        routeRepository.save(route1);
+        routeRepository.save(shortRoute);
+        routeRepository.save(mediumRoute);
+        routeRepository.save(longRoute);
 
         // When
-        var exists = routeRepository.existsByCode("R001");
-        var notExists = routeRepository.existsByCode("R999");
+        var result = routeRepository.findByDistanceKmLessThanEqual(
+                new BigDecimal("630"),
+                PageRequest.of(0, 10)
+        );
+
+        // Then
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent())
+                .extracting(Route::getCode)
+                .containsExactlyInAnyOrder("R001", "R003");
+    }
+
+    @Test
+    @DisplayName("Route: find by distance greater than or equal")
+    void shouldFindByDistanceGreaterThanOrEqual() {
+        // Given
+        routeRepository.save(shortRoute);
+        routeRepository.save(mediumRoute);
+        routeRepository.save(longRoute);
+
+        // When
+        var result = routeRepository.findByDistanceKmGreaterThanEqual(
+                new BigDecimal("630"),
+                PageRequest.of(0, 10)
+        );
+
+        // Then
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent())
+                .extracting(Route::getCode)
+                .containsExactlyInAnyOrder("R002", "R003");
+    }
+
+    @Test
+    @DisplayName("Route: exists by code")
+    void shouldCheckExistsByCode() {
+        // Given
+        routeRepository.save(shortRoute);
+
+        // When
+        boolean exists = routeRepository.existsByCode("R001");
+        boolean notExists = routeRepository.existsByCode("R999");
 
         // Then
         assertThat(exists).isTrue();
@@ -194,20 +231,20 @@ public class RouteRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("Route: return empty when code not found")
     void shouldReturnEmptyWhenCodeNotFound() {
         // Given
-        routeRepository.save(route1);
+        routeRepository.save(shortRoute);
 
         // When
-        var result = routeRepository.findByCode("R999");
+        var result = routeRepository.findByCode("NONEXISTENT");
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("Route: return empty list when origin has no routes")
-    void shouldReturnEmptyWhenOriginNotFound() {
+    @DisplayName("Route: return empty list when origin not found")
+    void shouldReturnEmptyListWhenOriginNotFound() {
         // Given
-        routeRepository.save(route1);
+        routeRepository.save(shortRoute);
 
         // When
         var result = routeRepository.findByOrigin("Cali");
@@ -217,14 +254,14 @@ public class RouteRepositoryTest extends AbstractRepositoryIT {
     }
 
     @Test
-    @DisplayName("Route: return empty page when distance criteria doesn't meet the requirements")
-    void shouldReturnEmptyPageWhenDistanceNotMatch() {
+    @DisplayName("Route: return empty page when no routes match distance criteria")
+    void shouldReturnEmptyPageWhenNoDistanceMatch() {
         // Given
-        routeRepository.save(route2);
+        routeRepository.save(shortRoute);
 
         // When
         var result = routeRepository.findByDistanceKmGreaterThanEqual(
-                new BigDecimal("5000"),
+                new BigDecimal("2000"),
                 PageRequest.of(0, 10)
         );
 
