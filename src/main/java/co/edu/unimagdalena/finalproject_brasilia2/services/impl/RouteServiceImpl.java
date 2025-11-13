@@ -29,7 +29,7 @@ public class RouteServiceImpl implements RouteService {
     public RouteResponse create(RouteCreateRequest request) {
         if (routeRepository.existsByCode(request.code()))
         {
-            throw new IllegalArgumentException("Route with code %s already exists".formatted(request.code()));
+            throw new IllegalStateException("Route with code %s already exists".formatted(request.code()));
         }
         var route = mapper.toEntity(request);
         route.setCode(request.code());
