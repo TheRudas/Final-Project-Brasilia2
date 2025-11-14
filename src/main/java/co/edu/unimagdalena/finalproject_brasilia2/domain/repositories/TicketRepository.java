@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +36,12 @@ public interface TicketRepository extends JpaRepository<Ticket,Long> {
         WHERE (:fromStopId IS NULL OR T.fromStop.id = :fromStopId) AND (:toStopId IS NULL OR T.toStop.id = :toStopId)
     """)
     Page<Ticket> findAllBetweenOptionalStops(@Param("fromStopId") Long fromStopId, @Param("toStopId") Long toStopId, Pageable pageable);
+
+    //figuro hacer esto
+    @Query("""
+    SELECT t FROM Ticket t
+    WHERE t.status = 'SOLD'
+    AND t.trip.departureTime < :threshold
+""")
+    List<Ticket> findNoShows(@Param("threshold") OffsetDateTime threshold);
 }
