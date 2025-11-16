@@ -10,15 +10,15 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 public class FareRuleDtos {
-    public record FareRuleCreateRequest(@NotNull Long routeId,@NotNull Long FromStopId,@NotNull Long toStopID,
-                                       @Positive BigDecimal price) implements Serializable {
+    public record FareRuleCreateRequest(@NotNull Long routeId,@NotNull Long fromStopId,@NotNull Long toStopId,
+                                       @Positive BigDecimal basePrice) implements Serializable {
     }
 
-    public record FareRuleUpdateRequest(@NotNull Long routeId, @NotNull Long fromStopId,@NotNull Long toStopID,
-                                        @Positive  BigDecimal price) implements Serializable {
+    public record FareRuleUpdateRequest(@NotNull Long routeId, @NotNull Long fromStopId,@NotNull Long toStopId,
+                                        @Positive  BigDecimal basePrice) implements Serializable {
     }
-    public record FareRuleResponse(@NotNull Long id, @NotNull Route route, @NotNull Stop fromStop, @NotNull Stop toStop,
-                                   @Positive BigDecimal price, @NotBlank String discount, boolean dynamicPricing) implements Serializable {
+    public record FareRuleResponse(@NotNull Long id, @NotNull Long routeId, @NotNull Long fromStopId, @NotNull Long toStopId,
+                                   @Positive BigDecimal basePrice, @NotBlank String discount, boolean dynamicPricing) implements Serializable {
     }
 
 }

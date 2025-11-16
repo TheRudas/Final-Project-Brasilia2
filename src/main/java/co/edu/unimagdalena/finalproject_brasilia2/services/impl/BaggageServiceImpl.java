@@ -16,9 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Service
-@Transactional(readOnly = true)
-@RequiredArgsConstructor
+    @Service
+    @Transactional(readOnly = true)
+    @RequiredArgsConstructor
 public class BaggageServiceImpl implements BaggageService {
     private final BaggageRepository baggageRepository;
     private final TicketRepository ticketRepository;

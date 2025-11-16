@@ -38,3 +38,4 @@ public class    Assignment {
     @Column(name = "assigned_at", nullable = false)
     private OffsetDateTime assignedAt;
 }
+//tripd id and driverID DispatcherID in response are mapped manually

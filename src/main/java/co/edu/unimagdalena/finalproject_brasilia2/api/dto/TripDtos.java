@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public class TripDtos {
     public record TripCreateRequest(@NotNull Long routeId, @NotNull Long busId, @NotBlank String localDate,@NotBlank String departureTime,@NotBlank String arrivalTime) implements java.io.Serializable {}
-    public record tripUpdateRequest(Long routeId, Long busId,String localDate, String departureTime, String arrivalTime) implements java.io.Serializable {}
+    public record TripUpdateRequest(Long routeId, Long busId,String localDate, String departureTime, String arrivalTime) implements java.io.Serializable {}
     public record TripResponse(Long id, Long routeId, Long busId,String localDate, String departureTime, String arrivalTime) implements java.io.Serializable {}
     
 
