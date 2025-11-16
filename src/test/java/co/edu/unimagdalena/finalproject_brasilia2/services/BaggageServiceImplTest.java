@@ -603,4 +603,48 @@ class BaggageServiceImplTest {
                 pageable
         );
     }
+
+    // ============= GET ALL BY TICKET ID TESTS =============
+
+    @Test
+    void shouldGetAllBaggagesByTicketId() {
+        // Given
+        var passenger = User.builder().id(1L).name("Roberto Diaz").build();
+        var ticket = Ticket.builder().id(5L).passenger(passenger).build();
+
+        var baggage1 = Baggage.builder()
+                .id(10L)
+                .ticket(ticket)
+                .weightKg(new BigDecimal("12.00"))
+                .fee(new BigDecimal("20000.00"))
+                .tagCode("BAG-III99999")
+                .build();
+
+        var baggage2 = Baggage.builder()
+                .id(11L)
+                .ticket(ticket)
+                .weightKg(new BigDecimal("8.00"))
+                .fee(new BigDecimal("15000.00"))
+                .tagCode("BAG-JJJ00000")
+                .build();
+
+        when(ticketRepository.existsById(5L)).thenReturn(true);
+        when(baggageRepository.findAllByTicketId(5L))
+                .thenReturn(List.of(baggage1, baggage2));
+
+        // When
+        var result = service.getAllByTicketId(5L);
+
+        // Then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).id()).isEqualTo(10L);
+        assertThat(result.get(0).ticketId()).isEqualTo(5L);
+        assertThat(result.get(0).tagCode()).isEqualTo("BAG-III99999");
+        assertThat(result.get(0).passengerName()).isEqualTo("Roberto Diaz");
+        assertThat(result.get(1).id()).isEqualTo(11L);
+        assertThat(result.get(1).tagCode()).isEqualTo("BAG-JJJ00000");
+
+        verify(ticketRepository).existsById(5L);
+        verify(baggageRepository).findAllByTicketId(5L);
+    }
 }
