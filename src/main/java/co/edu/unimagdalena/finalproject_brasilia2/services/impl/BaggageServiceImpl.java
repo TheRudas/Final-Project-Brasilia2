@@ -104,4 +104,16 @@ public class BaggageServiceImpl implements BaggageService {
         }
         return baggage.map(mapper::toResponse);
     }
+
+    @Override
+    public List<BaggageResponse> getAllByTicketId(Long ticketId) {
+        if(!ticketRepository.existsById(ticketId)){
+            throw new NotFoundException("Ticket not found with id: " + ticketId);
+        }
+        List<Baggage> baggage = baggageRepository.findAllByTicketId(ticketId);
+        if(baggage.isEmpty()){
+            throw new NotFoundException("No baggage found for ticket with id: " + ticketId);
+        }
+        return baggage.stream().map(mapper::toResponse).toList();
+    }
 }

@@ -16,4 +16,5 @@ public interface BaggageService {
     Page<BaggageResponse> getByWeightGreaterThanOrEqual(BigDecimal weightKg, Pageable pageable);
     Page<BaggageResponse> getByWeightLessThanOrEqual(BigDecimal weightKg, Pageable pageable);
     Page<BaggageResponse> getByWeightBetween(BigDecimal minKg, BigDecimal maxKg, Pageable pageable);
+    List<BaggageResponse> getAllByTicketId(Long ticketId);
 }
