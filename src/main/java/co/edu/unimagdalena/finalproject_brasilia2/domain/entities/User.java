@@ -2,7 +2,6 @@ package co.edu.unimagdalena.finalproject_brasilia2.domain.entities;
 
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.UserRole;
 import jakarta.persistence.*;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +26,6 @@ public class User {
     private String name;
 
     @Email
-    @Valid
     @Column(name = "user_email", nullable = false,  unique = true)
     private String email;
 
