@@ -66,8 +66,12 @@ public class TicketServiceImpl implements TicketService {
         if (fromStop.getOrder() >= toStop.getOrder()) {
             throw new IllegalStateException("FromStop order must be less than ToStop order");
         }
-        if (ticketRepository.findByTripAndSeatNumber(trip, request.seatNumber()).isPresent()) {
-            throw new IllegalStateException("Seat %s already sold for this trip".formatted(request.seatNumber()));
+
+        // Validate seat availability in overlapping segments
+        if (ticketRepository.existsOverlappingTicket(trip.getId(), request.seatNumber(), fromStop.getOrder(), toStop.getOrder())) {
+            throw new IllegalStateException("Seat %s is already occupied in overlapping segment between stops %d and %d"
+                    .formatted(request.seatNumber(), fromStop.getOrder(), toStop.getOrder())
+            );
         }
 
         // Crear ticket

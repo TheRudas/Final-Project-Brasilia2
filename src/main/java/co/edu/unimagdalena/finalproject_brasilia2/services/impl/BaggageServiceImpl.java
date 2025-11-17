@@ -24,6 +24,10 @@ public class BaggageServiceImpl implements BaggageService {
     private final TicketRepository ticketRepository;
     private final BaggageMapper mapper;
 
+    // Present constants for fee calculation
+    private static final BigDecimal MAX_FREE_WEIGHT_KG = new BigDecimal("20.00");
+    private static final BigDecimal FEE_PER_EXCESS_KG = new BigDecimal("2000");
+
     @Override
     @Transactional
     public BaggageResponse create(BaggageCreateRequest request) {
@@ -34,9 +38,25 @@ public class BaggageServiceImpl implements BaggageService {
         if(baggageRepository.findByTagCode(request.tagCode()).isPresent()) {
             throw new IllegalStateException("Baggage tag %s already exists".formatted(request.tagCode())); //'state' cause is valid but already registered in Kevin DB
         }
+
         var baggage = mapper.toEntity(request);
         baggage.setTicket(ticket);
+
+        // Calculate by weight automatically (NO to Request, to baggage)
+        BigDecimal calculatedFee = calculateFee(request.weightKg());
+        baggage.setFee(calculatedFee);
+
         return mapper.toResponse(baggageRepository.save(baggage));
+    }
+
+    //OYE GELDA ESCUCHATE ESTO
+    // First 20 kg free, then 2000 barras by kg extra
+    private BigDecimal calculateFee(BigDecimal weightKg) {
+        if (weightKg.compareTo(MAX_FREE_WEIGHT_KG) > 0) {
+            BigDecimal excessWeight = weightKg.subtract(MAX_FREE_WEIGHT_KG);
+            return excessWeight.multiply(FEE_PER_EXCESS_KG);
+        }
+        return BigDecimal.ZERO;
     }
 
     @Override
