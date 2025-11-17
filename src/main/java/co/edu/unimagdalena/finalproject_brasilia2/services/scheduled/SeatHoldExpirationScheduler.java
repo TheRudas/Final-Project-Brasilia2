@@ -31,7 +31,7 @@ public class SeatHoldExpirationScheduler {
                 .filter(hold -> hold.getExpiresAt().isBefore(now)).toList();
 
         if (!expiredHolds.isEmpty()) {
-            expiredHolds.forEach(hold -> {hold.setStatus(SeatHoldStatus.EXPIRED);});
+            expiredHolds.forEach(hold -> hold.setStatus(SeatHoldStatus.EXPIRED));
 
             seatHoldRepository.saveAll(expiredHolds);
         }
