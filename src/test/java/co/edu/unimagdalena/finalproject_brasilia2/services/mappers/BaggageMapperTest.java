@@ -1,0 +1,53 @@
+package co.edu.unimagdalena.finalproject_brasilia2.services.mappers;
+
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.*;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.*;
+import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+
+import java.math.BigDecimal;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class BaggageMapperTest {
+    private final BaggageMapper mapper = Mappers.getMapper(BaggageMapper.class);
+
+    @Test
+    void toEntity_shouldMapCreateRequest() {
+        var req = new BaggageCreateRequest(1L, new BigDecimal("15.5"), new BigDecimal("25000.00"), "BAG-001");
+        Baggage entity = mapper.toEntity(req);
+
+        assertThat(entity.getWeightKg()).isEqualByComparingTo(new BigDecimal("15.5"));
+        assertThat(entity.getFee()).isEqualByComparingTo(new BigDecimal("25000.00"));
+        assertThat(entity.getTagCode()).isEqualTo("BAG-001");
+    }
+
+    @Test
+    void toResponse_shouldMapEntity() {
+        var ticket = Ticket.builder().id(10L)
+                .passenger(User.builder().name("Juan Perez").build())
+                .build();
+        var b = Baggage.builder()
+                .id(5L).ticket(ticket).weightKg(new BigDecimal("20.0"))
+                .fee(new BigDecimal("30000.00")).tagCode("BAG-002").build();
+
+        BaggageResponse dto = mapper.toResponse(b);
+
+        assertThat(dto.id()).isEqualTo(5L);
+        assertThat(dto.ticketId()).isEqualTo(10L);
+        assertThat(dto.passengerName()).isEqualTo("Juan Perez");
+        assertThat(dto.tagCode()).isEqualTo("BAG-002");
+    }
+
+    @Test
+    void patch_shouldIgnoreNulls() {
+        var entity = Baggage.builder().id(1L).weightKg(new BigDecimal("10.0"))
+                .fee(new BigDecimal("20000.00")).build();
+        var changes = new BaggageUpdateRequest(new BigDecimal("12.0"), null);
+
+        mapper.patch(entity, changes);
+
+        assertThat(entity.getWeightKg()).isEqualByComparingTo(new BigDecimal("12.0"));
+        assertThat(entity.getFee()).isEqualByComparingTo(new BigDecimal("20000.00"));
+    }
+}
