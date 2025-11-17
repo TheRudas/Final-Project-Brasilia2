@@ -672,7 +672,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByPassengerId(1L)).thenReturn(List.of(ticket1, ticket2));
 
         // When
-        var result = service.getByPassengerId(1L);
+        var result = service.listByPassengerId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -688,7 +688,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByPassengerId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByPassengerId(99L))
+        assertThatThrownBy(() -> service.listByPassengerId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found for passenger 99");
 
@@ -736,7 +736,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByTripId(1L)).thenReturn(List.of(ticket1, ticket2));
 
         // When
-        var result = service.getByTripId(1L);
+        var result = service.listByTripId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -752,7 +752,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByTripId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByTripId(99L))
+        assertThatThrownBy(() -> service.listByTripId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found for trip 99");
 
@@ -789,7 +789,7 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(ticket)));
 
         // When
-        var result = service.getByPaymentMethod(PaymentMethod.CARD, pageable);
+        var result = service.listByPaymentMethod(PaymentMethod.CARD, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
@@ -806,7 +806,7 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of()));
 
         // When / Then
-        assertThatThrownBy(() -> service.getByPaymentMethod(PaymentMethod.QR, pageable))
+        assertThatThrownBy(() -> service.listByPaymentMethod(PaymentMethod.QR, pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found with payment method QR");
 
@@ -834,7 +834,7 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(ticket)));
 
         // When
-        var result = service.getByStatus(TicketStatus.SOLD, pageable);
+        var result = service.listByStatus(TicketStatus.SOLD, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
@@ -864,7 +864,7 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(ticket)));
 
         // When
-        var result = service.getBetweenStops(1L, 5L, pageable);
+        var result = service.listBetweenStops(1L, 5L, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
@@ -882,7 +882,7 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of()));
 
         // When / Then
-        assertThatThrownBy(() -> service.getBetweenStops(1L, 5L, pageable))
+        assertThatThrownBy(() -> service.listBetweenStops(1L, 5L, pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found between stops");
 

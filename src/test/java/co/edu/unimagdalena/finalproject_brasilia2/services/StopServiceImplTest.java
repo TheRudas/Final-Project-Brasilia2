@@ -402,7 +402,7 @@ class StopServiceImplTest {
         when(stopRepository.findByRouteId(1L)).thenReturn(List.of(stop1, stop2));
 
         // When
-        var result = service.getByRouteId(1L);
+        var result = service.listByRouteId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -420,7 +420,7 @@ class StopServiceImplTest {
         when(stopRepository.findByRouteId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByRouteId(99L))
+        assertThatThrownBy(() -> service.listByRouteId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No stops found for route 99");
 
@@ -463,7 +463,7 @@ class StopServiceImplTest {
                 .thenReturn(List.of(stop1, stop2, stop3));
 
         // When
-        var result = service.getByRouteIdOrderByOrderAsc(1L);
+        var result = service.listByRouteIdOrderByOrderAsc(1L);
 
         // Then
         assertThat(result).hasSize(3);
@@ -483,7 +483,7 @@ class StopServiceImplTest {
         when(stopRepository.findByRouteIdOrderByOrderAsc(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByRouteIdOrderByOrderAsc(99L))
+        assertThatThrownBy(() -> service.listByRouteIdOrderByOrderAsc(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No stops found for route 99");
 

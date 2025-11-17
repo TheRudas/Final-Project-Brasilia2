@@ -18,11 +18,11 @@ public interface RouteService {
 
     RouteResponse getByCode(String code);
     RouteResponse getByName(String name);
-    List<RouteResponse> getByOrigin(String origin);
-    List<RouteResponse> getByDestination(String destination);
-    List<RouteResponse> getByOriginAndDestination(String origin, String destination);
-    List<RouteResponse> getByDurationMinBetween(Integer min, Integer max);
-    Page<RouteResponse> getByDurationMinLessThanEqual(Integer min, Pageable pageable);
-    Page<RouteResponse> getByDistanceKmLessThanEqual(BigDecimal distanceKm, Pageable pageable);
-    Page<RouteResponse> getByDistanceKmGreaterThanEqual(BigDecimal distanceKm, Pageable pageable);
+    List<RouteResponse> listByOrigin(String origin);
+    List<RouteResponse> listByDestination(String destination);
+    List<RouteResponse> listByOriginAndDestination(String origin, String destination);
+    List<RouteResponse> listByDurationMinBetween(Integer min, Integer max);
+    Page<RouteResponse> listByDurationMinLessThanEqual(Integer min, Pageable pageable);
+    Page<RouteResponse> listByDistanceKmLessThanEqual(BigDecimal distanceKm, Pageable pageable);
+    Page<RouteResponse> listByDistanceKmGreaterThanEqual(BigDecimal distanceKm, Pageable pageable);
 }

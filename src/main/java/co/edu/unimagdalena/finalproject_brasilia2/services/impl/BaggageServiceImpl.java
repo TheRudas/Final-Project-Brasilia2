@@ -70,7 +70,7 @@ public class BaggageServiceImpl implements BaggageService {
     }
 
     @Override
-    public List<BaggageResponse> getByPassengerId(Long passengerId) {
+    public List<BaggageResponse> listByPassengerId(Long passengerId) {
         List<Baggage> baggage = baggageRepository.findByTicket_Passenger_Id(passengerId);
         if(baggage.isEmpty()){
             throw new NotFoundException("Passenger with id %d hasn't baggage".formatted(passengerId));
@@ -79,7 +79,7 @@ public class BaggageServiceImpl implements BaggageService {
     }
 
     @Override
-    public Page<BaggageResponse> getByWeightGreaterThanOrEqual(BigDecimal weightKg, Pageable pageable) {
+    public Page<BaggageResponse> listByWeightGreaterThanOrEqual(BigDecimal weightKg, Pageable pageable) {
         Page<Baggage> baggage = baggageRepository.findByWeightKgGreaterThanEqual(weightKg, pageable);
         if(baggage.isEmpty()){
             throw new NotFoundException("Baggage >= than %s not found".formatted(weightKg));
@@ -88,7 +88,7 @@ public class BaggageServiceImpl implements BaggageService {
     }
 
     @Override
-    public Page<BaggageResponse> getByWeightLessThanOrEqual(BigDecimal weightKg, Pageable pageable) {
+    public Page<BaggageResponse> listByWeightLessThanOrEqual(BigDecimal weightKg, Pageable pageable) {
         Page<Baggage> baggage = baggageRepository.findByWeightKgLessThanEqual(weightKg, pageable);
         if(baggage.isEmpty()){
             throw new NotFoundException("Baggage <= than %s not found".formatted(weightKg));
@@ -97,7 +97,7 @@ public class BaggageServiceImpl implements BaggageService {
     }
 
     @Override
-    public Page<BaggageResponse> getByWeightBetween(BigDecimal minKg, BigDecimal maxKg, Pageable pageable) {
+    public Page<BaggageResponse> listByWeightBetween(BigDecimal minKg, BigDecimal maxKg, Pageable pageable) {
         Page<Baggage> baggage = baggageRepository.findByWeightKgBetween(minKg, maxKg, pageable);
         if(baggage.isEmpty()){
             throw new NotFoundException("Baggage between %s and %s not found".formatted(minKg, maxKg));
@@ -106,7 +106,7 @@ public class BaggageServiceImpl implements BaggageService {
     }
 
     @Override
-    public List<BaggageResponse> getAllByTicketId(Long ticketId) {
+    public List<BaggageResponse> listByTicketId(Long ticketId) {
         if(!ticketRepository.existsById(ticketId)){
             throw new NotFoundException("Ticket not found with id: " + ticketId);
         }
