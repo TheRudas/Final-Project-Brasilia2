@@ -19,7 +19,7 @@ public class NoShowScheduler {
 
     private final TicketRepository ticketRepository;
 
-    // Este es un esclavo que busca tickets vendidos cuyo viaje salió hace +5 min y los marca NO_SHOW automáticamente. Gracias esclavo
+    // Este es un esclavo que busca tickets vendidos cuyo viaje va a salir en t-5 y los marca NO_SHOW automáticamente. Gracias esclavo
 
     @Scheduled(fixedRate = 60000) // 60k ms = 1 min
     @Transactional

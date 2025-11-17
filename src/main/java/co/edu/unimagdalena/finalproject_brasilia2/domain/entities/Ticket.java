@@ -52,6 +52,6 @@ public class Ticket {
     @Enumerated(EnumType.STRING)
     private TicketStatus status;
 
-    @Column(name = "qrCode", nullable = false)
+    @Column(name = "qrCode", nullable = false, unique = true)
     private String qrCode;
 }
