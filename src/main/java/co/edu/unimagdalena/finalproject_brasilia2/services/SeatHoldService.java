@@ -7,8 +7,8 @@ import java.util.List;
 public interface SeatHoldService {
     SeatHoldResponse create(SeatHoldCreateRequest request);
     SeatHoldResponse get(Long id);
-    List<SeatHoldResponse> getByTripId(Long tripId);
-    List<SeatHoldResponse> getByUserId(Long userId);
+    List<SeatHoldResponse> listByTripId(Long tripId);
+    List<SeatHoldResponse> listByUserId(Long userId);
     void expire(Long id);
     void expireAll();
 }

@@ -58,7 +58,7 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponse> getByEntityType(IncidentEntityType entityType) {
+    public List<IncidentResponse> listByEntityType(IncidentEntityType entityType) {
         List<Incident> incidents = incidentRepository.findByEntityType(entityType);
         if (incidents.isEmpty()) {
             throw new NotFoundException("No incidents found for entity type: %s".formatted(entityType));
@@ -67,7 +67,7 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponse> getByEntityId(Long entityId) {
+    public List<IncidentResponse> listByEntityId(Long entityId) {
         List<Incident> incidents = incidentRepository.findByEntityId(entityId);
         if (incidents.isEmpty()) {
             throw new NotFoundException("No incidents found for entity Id: %d".formatted(entityId));
@@ -76,7 +76,7 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponse> getByEntityTypeAndEntityId(IncidentEntityType entityType, Long entityId) {
+    public List<IncidentResponse> listByEntityTypeAndEntityId(IncidentEntityType entityType, Long entityId) {
         List<Incident> incidents = incidentRepository.findByEntityTypeAndEntityId(entityType, entityId);
         if (incidents.isEmpty()) {
             throw new NotFoundException("No incidents found for %s and entity Id: %d".formatted(entityType, entityId));
@@ -85,7 +85,7 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponse> getByType(IncidentType type) {
+    public List<IncidentResponse> listByType(IncidentType type) {
         List<Incident> incidents = incidentRepository.findByType(type);
         if (incidents.isEmpty()) {
             throw new NotFoundException("Incidents of %s type not found".formatted(type));
@@ -99,7 +99,7 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<IncidentResponse> getByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end) {
+    public List<IncidentResponse> listByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end) {
         List<Incident> incidents = incidentRepository.findByCreatedAtBetween(start, end);
         if (incidents.isEmpty()) {
             throw new NotFoundException("No incidents found between %s and %s".formatted(start, end));

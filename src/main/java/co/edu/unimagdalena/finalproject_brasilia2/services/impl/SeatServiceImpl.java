@@ -72,7 +72,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    public List<SeatResponse> getByBusId(Long busId) {
+    public List<SeatResponse> listByBusId(Long busId) {
         List<Seat> seats = seatRepository.findByBusId(busId);
         if (seats.isEmpty()) {
             throw new NotFoundException("bus %d has no seats".formatted(busId));
@@ -81,7 +81,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    public List<SeatResponse> getByBusIdAndSeatType(Long busId, SeatType seatType) {
+    public List<SeatResponse> listByBusIdAndSeatType(Long busId, SeatType seatType) {
         List<Seat> seats = seatRepository.findByBusIdAndSeatType(busId, seatType);
         if (seats.isEmpty()) {
             throw new NotFoundException("bus %d has no %s seats".formatted(busId, seatType));
@@ -97,7 +97,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    public List<SeatResponse> getByBusIdOrderByNumberAsc(Long busId) {
+    public List<SeatResponse> listByBusIdOrderByNumberAsc(Long busId) {
         List<Seat> seats = seatRepository.findByBusIdOrderByNumberAsc(busId);
         if (seats.isEmpty()) {
             throw new NotFoundException("bus %d has no seats".formatted(busId));

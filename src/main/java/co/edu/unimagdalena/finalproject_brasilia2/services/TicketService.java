@@ -15,11 +15,11 @@ public interface TicketService {
     TicketResponse get(Long id);
     void delete(Long id);
     TicketResponse getByQrCode(String qrCode);
-    List<TicketResponse> getByPassengerId(Long passengerId);
-    List<TicketResponse> getByTripId(Long tripId);
-    Page<TicketResponse> getByPaymentMethod(PaymentMethod paymentMethod, Pageable pageable);
-    Page<TicketResponse> getByStatus(TicketStatus status, Pageable pageable);
-    Page<TicketResponse> getBetweenStops(Long fromStopId, Long toStopId, Pageable pageable);
+    List<TicketResponse> listByPassengerId(Long passengerId);
+    List<TicketResponse> listByTripId(Long tripId);
+    Page<TicketResponse> listByPaymentMethod(PaymentMethod paymentMethod, Pageable pageable);
+    Page<TicketResponse> listByStatus(TicketStatus status, Pageable pageable);
+    Page<TicketResponse> listBetweenStops(Long fromStopId, Long toStopId, Pageable pageable);
     BigDecimal getTotalByPassengerId(Long passengerId);
     TicketResponse cancel(Long id);
 }

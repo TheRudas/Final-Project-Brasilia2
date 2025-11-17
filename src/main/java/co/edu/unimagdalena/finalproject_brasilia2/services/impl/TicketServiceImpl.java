@@ -102,7 +102,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public List<TicketResponse> getByPassengerId(Long passengerId) {
+    public List<TicketResponse> listByPassengerId(Long passengerId) {
         List<Ticket> tickets = ticketRepository.findByPassengerId(passengerId);
         if (tickets.isEmpty()) {
             throw new NotFoundException("No tickets found for passenger %d".formatted(passengerId));
@@ -111,7 +111,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public List<TicketResponse> getByTripId(Long tripId) {
+    public List<TicketResponse> listByTripId(Long tripId) {
         List<Ticket> tickets = ticketRepository.findByTripId(tripId);
         if (tickets.isEmpty()) {
             throw new NotFoundException("No tickets found for trip %d".formatted(tripId));
@@ -120,7 +120,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public Page<TicketResponse> getByPaymentMethod(PaymentMethod paymentMethod, Pageable pageable) {
+    public Page<TicketResponse> listByPaymentMethod(PaymentMethod paymentMethod, Pageable pageable) {
         Page<Ticket> tickets = ticketRepository.findByPaymentMethod(paymentMethod, pageable);
         if (tickets.isEmpty()) {
             throw new NotFoundException("No tickets found with payment method %s".formatted(paymentMethod));
@@ -129,7 +129,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public Page<TicketResponse> getByStatus(TicketStatus status, Pageable pageable) {
+    public Page<TicketResponse> listByStatus(TicketStatus status, Pageable pageable) {
         Page<Ticket> tickets = ticketRepository.findByStatus(status, pageable);
         if (tickets.isEmpty()) {
             throw new NotFoundException("No tickets found with status %s".formatted(status));
@@ -138,7 +138,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public Page<TicketResponse> getBetweenStops(Long fromStopId, Long toStopId, Pageable pageable) {
+    public Page<TicketResponse> listBetweenStops(Long fromStopId, Long toStopId, Pageable pageable) {
         Page<Ticket> tickets = ticketRepository.findAllBetweenOptionalStops(fromStopId, toStopId, pageable);
         if (tickets.isEmpty()) {
             throw new NotFoundException("No tickets found between stops");

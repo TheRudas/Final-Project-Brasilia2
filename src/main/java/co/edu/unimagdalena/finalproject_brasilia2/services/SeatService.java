@@ -12,9 +12,9 @@ public interface SeatService {
     SeatResponse get(Long id);
     void delete(Long id);
 
-    List<SeatResponse> getByBusId(Long busId);
-    List<SeatResponse> getByBusIdAndSeatType(Long busId, SeatType seatType);
+    List<SeatResponse> listByBusId(Long busId);
+    List<SeatResponse> listByBusIdAndSeatType(Long busId, SeatType seatType);
     SeatResponse getByBusIdAndNumber(Long busId, String number);
-    List<SeatResponse> getByBusIdOrderByNumberAsc(Long busId);
+    List<SeatResponse> listByBusIdOrderByNumberAsc(Long busId);
     Long countByBusId(Long busId);
 }

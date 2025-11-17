@@ -369,7 +369,7 @@ class BaggageServiceImplTest {
                 .thenReturn(List.of(baggage1, baggage2));
 
         // When
-        var result = service.getByPassengerId(1L);
+        var result = service.listByPassengerId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -389,7 +389,7 @@ class BaggageServiceImplTest {
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByPassengerId(99L))
+        assertThatThrownBy(() -> service.listByPassengerId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Passenger with id 99 hasn't baggage");
 
@@ -428,7 +428,7 @@ class BaggageServiceImplTest {
                 .thenReturn(page);
 
         // When
-        var result = service.getByWeightGreaterThanOrEqual(new BigDecimal("20.00"), pageable);
+        var result = service.listByWeightGreaterThanOrEqual(new BigDecimal("20.00"), pageable);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -451,7 +451,7 @@ class BaggageServiceImplTest {
                 .thenReturn(page);
 
         // When / Then
-        assertThatThrownBy(() -> service.getByWeightGreaterThanOrEqual(new BigDecimal("50.00"), pageable))
+        assertThatThrownBy(() -> service.listByWeightGreaterThanOrEqual(new BigDecimal("50.00"), pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Baggage >= than 50.00 not found");
 
@@ -490,7 +490,7 @@ class BaggageServiceImplTest {
                 .thenReturn(page);
 
         // When
-        var result = service.getByWeightLessThanOrEqual(new BigDecimal("10.00"), pageable);
+        var result = service.listByWeightLessThanOrEqual(new BigDecimal("10.00"), pageable);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -513,7 +513,7 @@ class BaggageServiceImplTest {
                 .thenReturn(page);
 
         // When / Then
-        assertThatThrownBy(() -> service.getByWeightLessThanOrEqual(new BigDecimal("1.00"), pageable))
+        assertThatThrownBy(() -> service.listByWeightLessThanOrEqual(new BigDecimal("1.00"), pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Baggage <= than 1.00 not found");
 
@@ -555,7 +555,7 @@ class BaggageServiceImplTest {
         )).thenReturn(page);
 
         // When
-        var result = service.getByWeightBetween(
+        var result = service.listByWeightBetween(
                 new BigDecimal("10.00"),
                 new BigDecimal("20.00"),
                 pageable
@@ -589,7 +589,7 @@ class BaggageServiceImplTest {
         )).thenReturn(page);
 
         // When / Then
-        assertThatThrownBy(() -> service.getByWeightBetween(
+        assertThatThrownBy(() -> service.listByWeightBetween(
                 new BigDecimal("100.00"),
                 new BigDecimal("200.00"),
                 pageable
@@ -633,7 +633,7 @@ class BaggageServiceImplTest {
                 .thenReturn(List.of(baggage1, baggage2));
 
         // When
-        var result = service.getAllByTicketId(5L);
+        var result = service.listByTicketId(5L);
 
         // Then
         assertThat(result).hasSize(2);
