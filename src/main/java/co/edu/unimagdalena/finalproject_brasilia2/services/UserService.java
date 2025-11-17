@@ -11,6 +11,9 @@ public interface UserService {
     UserResponse create(UserCreateRequest request);
     UserResponse update(Long id, UserUpdateRequest request);
     UserResponse get(Long id);
+    void delete(Long id); //NJD igual el usuario puede *borrar la cuenta*
+
+    Page<UserResponse> list(Pageable pageable);
     UserResponse getByEmail(String email);
     List<UserResponse> getByRole(UserRole role);
     UserResponse getByPhone(String phone);

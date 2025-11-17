@@ -729,6 +729,117 @@ class UserServiceImplTest {
     }
 
     @Test
+    void shouldDeleteUserSuccessfully() {
+        // Given
+        var user = User.builder()
+                .id(1L)
+                .name("Juan Perez")
+                .email("juan.perez@example.com")
+                .phone("3001234567")
+                .role(UserRole.PASSENGER)
+                .status(true)
+                .passwordHash("hashedPassword")
+                .createdAt(OffsetDateTime.now())
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        doNothing().when(userRepository).delete(user);
+
+        // When
+        service.delete(1L);
+
+        // Then
+        verify(userRepository).findById(1L);
+        verify(userRepository).delete(user);
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenDeleteNonExistentUser() {
+        // Given
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.delete(99L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("User 99 not found");
+
+        verify(userRepository).findById(99L);
+        verify(userRepository, never()).delete(any());
+    }
+
+    @Test
+    void shouldListAllUsers() {
+        // Given
+        var user1 = User.builder()
+                .id(1L)
+                .name("Usuario 1")
+                .email("user1@example.com")
+                .phone("3001234567")
+                .role(UserRole.PASSENGER)
+                .status(true)
+                .passwordHash("hashedPassword")
+                .createdAt(OffsetDateTime.now())
+                .build();
+
+        var user2 = User.builder()
+                .id(2L)
+                .name("Usuario 2")
+                .email("user2@example.com")
+                .phone("3009876543")
+                .role(UserRole.DRIVER)
+                .status(true)
+                .passwordHash("hashedPassword")
+                .createdAt(OffsetDateTime.now())
+                .build();
+
+        var page = new PageImpl<>(List.of(user1, user2));
+        var pageable = PageRequest.of(0, 10);
+
+        when(userRepository.findAll(pageable)).thenReturn(page);
+
+        // When
+        var result = service.list(pageable);
+
+        // Then
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Usuario 1");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Usuario 2");
+
+        verify(userRepository).findAll(pageable);
+    }
+
+    @Test
+    void shouldListUsersWithPagination() {
+        // Given
+        var user1 = User.builder()
+                .id(1L)
+                .name("Usuario 1")
+                .email("user1@example.com")
+                .phone("3001234567")
+                .role(UserRole.PASSENGER)
+                .status(true)
+                .passwordHash("hashedPassword")
+                .createdAt(OffsetDateTime.now())
+                .build();
+
+        var page = new PageImpl<>(List.of(user1), PageRequest.of(0, 1), 5);
+        var pageable = PageRequest.of(0, 1);
+
+        when(userRepository.findAll(pageable)).thenReturn(page);
+
+        // When
+        var result = service.list(pageable);
+
+        // Then
+        assertThat(result.getTotalElements()).isEqualTo(5);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalPages()).isEqualTo(5);
+
+        verify(userRepository).findAll(pageable);
+    }
+
+    @Test
     void shouldDeactivateAlreadyInactiveUser() {
         // Given
         var user = User.builder()
