@@ -56,6 +56,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public void delete(Long id) {
+        var user = userRepository.findById(id).orElseThrow(
+                () -> new NotFoundException("User %d not found".formatted(id)));
+        userRepository.delete(user);
+    }
+
+    @Override
+    public Page<UserResponse> list(Pageable pageable) {
+        return userRepository.findAll(pageable).map(userMapper::toResponse);
+    }
+
+    @Override
     public UserResponse getByEmail(String email) {
         return userRepository.findByEmail(email).map(userMapper::toResponse).orElseThrow(
                 () -> new NotFoundException("User with email \"%s\" not found".formatted(email)));

@@ -14,10 +14,10 @@ public interface IncidentService {
     IncidentResponse update(Long id, IncidentUpdateRequest request);
     IncidentResponse get(Long id);
     void delete(Long id);
-    List<IncidentResponse> getByEntityType(IncidentEntityType entityType);
-    List<IncidentResponse> getByEntityId(Long entityId);
-    List<IncidentResponse> getByEntityTypeAndEntityId(IncidentEntityType entityType, Long entityId);
-    List<IncidentResponse> getByType(IncidentType type);
+    List<IncidentResponse> listByEntityType(IncidentEntityType entityType);
+    List<IncidentResponse> listByEntityId(Long entityId);
+    List<IncidentResponse> listByEntityTypeAndEntityId(IncidentEntityType entityType, Long entityId);
+    List<IncidentResponse> listByType(IncidentType type);
     Long countByEntityType(IncidentEntityType entityType);
-    List<IncidentResponse> getByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end);
+    List<IncidentResponse> listByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end);
 }

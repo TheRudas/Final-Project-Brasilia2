@@ -339,7 +339,7 @@ class SeatHoldServiceImplTest {
         when(seatHoldRepository.findByTripId(1L)).thenReturn(List.of(hold1, hold2));
 
         // When
-        var result = service.getByTripId(1L);
+        var result = service.listByTripId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -355,7 +355,7 @@ class SeatHoldServiceImplTest {
         when(seatHoldRepository.findByTripId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByTripId(99L))
+        assertThatThrownBy(() -> service.listByTripId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No holds found for trip 99");
 
@@ -385,7 +385,7 @@ class SeatHoldServiceImplTest {
         when(seatHoldRepository.findByUserId(1L)).thenReturn(List.of(hold1, hold2));
 
         // When
-        var result = service.getByUserId(1L);
+        var result = service.listByUserId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -401,7 +401,7 @@ class SeatHoldServiceImplTest {
         when(seatHoldRepository.findByUserId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByUserId(99L))
+        assertThatThrownBy(() -> service.listByUserId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No holds found for user 99");
 

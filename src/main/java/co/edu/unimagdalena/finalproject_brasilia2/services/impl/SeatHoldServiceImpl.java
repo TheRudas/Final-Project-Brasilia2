@@ -76,7 +76,7 @@ public class SeatHoldServiceImpl implements SeatHoldService {
     }
 
     @Override
-    public List<SeatHoldResponse> getByTripId(Long tripId) {
+    public List<SeatHoldResponse> listByTripId(Long tripId) {
         List<SeatHold> holds = seatHoldRepository.findByTripId(tripId);
         if (holds.isEmpty()) {
             throw new NotFoundException("No holds found for trip %d".formatted(tripId));
@@ -85,7 +85,7 @@ public class SeatHoldServiceImpl implements SeatHoldService {
     }
 
     @Override
-    public List<SeatHoldResponse> getByUserId(Long userId) {
+    public List<SeatHoldResponse> listByUserId(Long userId) {
         List<SeatHold> holds = seatHoldRepository.findByUserId(userId);
         if (holds.isEmpty()) {
             throw new NotFoundException("No holds found for user %d".formatted(userId));
