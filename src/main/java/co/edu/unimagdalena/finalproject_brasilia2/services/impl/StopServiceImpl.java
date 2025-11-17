@@ -30,6 +30,22 @@ public class StopServiceImpl implements StopService {
         if(stopRepository.existsByRouteIdAndOrder(request.routeId(), request.order())) {
             throw new IllegalArgumentException("Stop order %d already exists for route %d".formatted(request.order(), request.routeId()));
         }
+
+        //validate if the order is consecutive
+        List<Stop> stops = stopRepository.findByRouteIdOrderByOrderAsc(request.routeId()).reversed();
+        if (stops.isEmpty()) {
+            // Primera parada debe ser order = 1
+            if (request.order() != 1) {
+                throw new IllegalArgumentException("First stop must have order 1");
+            }
+        } else {
+            int lastOrder = stops.get(0).getOrder();
+            if (request.order() != lastOrder + 1) {
+                throw new IllegalArgumentException("Order must be consecutive. Expected: %d, Got: %d"
+                    .formatted(lastOrder + 1, request.order()));
+            }
+        }
+
         var stop = mapper.toEntity(request);
         stop.setRoute(route);
         return mapper.toResponse(stopRepository.save(stop));

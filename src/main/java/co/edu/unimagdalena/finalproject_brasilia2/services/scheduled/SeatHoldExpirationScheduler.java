@@ -25,7 +25,7 @@ public class SeatHoldExpirationScheduler {
     public void expireHolds() {
         OffsetDateTime now = OffsetDateTime.now();
 
-        // Buscar todos los expiraos
+        // Buscar todos los expirados
         List<SeatHold> expiredHolds = seatHoldRepository.findAll().stream()
                 .filter(hold -> hold.getStatus() == SeatHoldStatus.HOLD)
                 .filter(hold -> hold.getExpiresAt().isBefore(now)).toList();

@@ -27,6 +27,7 @@ public class TicketServiceImpl implements TicketService {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
     private final StopRepository stopRepository;
+    private final SeatRepository seatRepository;
     private final TicketMapper mapper;
 
     @Override
@@ -45,8 +46,15 @@ public class TicketServiceImpl implements TicketService {
 
         Stop toStop = stopRepository.findById(request.toStopId())
                 .orElseThrow(() -> new NotFoundException("ToStop %d not found".formatted(request.toStopId())));
-        //belong
 
+        //Validate if seats exist in bus
+        seatRepository.findByBusIdAndNumber(trip.getBus().getId(), request.seatNumber())
+                .orElseThrow(() -> new NotFoundException(
+                        "Seat %s does not exist in bus %s"
+                                .formatted(request.seatNumber(), trip.getBus().getPlate())
+                ));
+
+        //belong
         if (!fromStop.getRoute().getId().equals(trip.getRoute().getId())) {
             throw new IllegalStateException("FromStop doesn't belong to trip's route");
         }
