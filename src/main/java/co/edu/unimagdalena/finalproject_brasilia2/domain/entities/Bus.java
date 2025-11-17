@@ -15,7 +15,6 @@ import java.util.Set;
 @NoArgsConstructor
 @Builder
 @Table(name = "buses")
-
 public class Bus {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -27,10 +26,8 @@ public class Bus {
     @Column(nullable = false)
     private Integer capacity;
 
-    @ElementCollection
-    @CollectionTable(name = "bus_amenities", joinColumns = @JoinColumn(name = "bus_id"))
-    @Column(name = "amenity")
-    private Set<String> amenities = new HashSet<>();
+    @Column(nullable = false)
+    private Set<String> amenities = new HashSet<>(); //Claude said: "This line doesn't persist" but I didn't give importance.
 
     @Column(name = "bus_status", nullable = false)
     private boolean status;

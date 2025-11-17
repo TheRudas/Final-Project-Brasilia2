@@ -14,7 +14,7 @@ import java.time.OffsetDateTime;
 @Builder
 @Entity
 @Table(name = "assignments")
-public class    Assignment {
+public class Assignment {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "assignment_id", nullable = false)

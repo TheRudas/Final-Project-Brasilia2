@@ -33,10 +33,10 @@ public class Trip {
     private LocalDate date; //Only saves trip's day, not specific hour or time
 
     @Column(name = "departure_time", nullable = false)
-    private OffsetDateTime departureTime;
+    private OffsetDateTime departureAt;
 
     @Column(name = "estimated_arrival_time", nullable = false)
-    private OffsetDateTime arrivalTime;
+    private OffsetDateTime arrivalEta;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
