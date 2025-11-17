@@ -69,7 +69,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public List<RouteResponse> getByOrigin(String origin) {
+    public List<RouteResponse> listByOrigin(String origin) {
         List<Route> routes = routeRepository.findByOrigin(origin);
         if (routes.isEmpty())
             throw new NotFoundException("Route from origin %s not found".formatted(origin));
@@ -77,7 +77,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public List<RouteResponse> getByDestination(String destination) {
+    public List<RouteResponse> listByDestination(String destination) {
         List<Route> routes = routeRepository.findByDestination(destination);
         if (routes.isEmpty())
             throw new NotFoundException("Route to destination %s not found".formatted(destination));
@@ -85,7 +85,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public List<RouteResponse> getByOriginAndDestination(String origin, String destination) {
+    public List<RouteResponse> listByOriginAndDestination(String origin, String destination) {
         List<Route> routes = routeRepository.findByOriginAndDestination(origin, destination);
         if (routes.isEmpty())
             throw new NotFoundException("Route from %s to %s not found".formatted(origin, destination));
@@ -93,7 +93,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public List<RouteResponse> getByDurationMinBetween(Integer min, Integer max) {
+    public List<RouteResponse> listByDurationMinBetween(Integer min, Integer max) {
         List<Route> routes = routeRepository.findByDurationMinBetween(min, max);
         if (routes.isEmpty())
             throw new NotFoundException("No routes found with duration between %d and %d minutes".formatted(min, max));
@@ -101,7 +101,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public Page<RouteResponse> getByDurationMinLessThanEqual(Integer min, Pageable pageable) {
+    public Page<RouteResponse> listByDurationMinLessThanEqual(Integer min, Pageable pageable) {
         Page<Route> routes = routeRepository.findByDurationMinLessThanEqual(min, pageable);
         if (routes.isEmpty()) {
             throw new NotFoundException("No routes found with duration <= %d minutes".formatted(min));
@@ -110,7 +110,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public Page<RouteResponse> getByDistanceKmLessThanEqual(BigDecimal distanceKm, Pageable pageable) {
+    public Page<RouteResponse> listByDistanceKmLessThanEqual(BigDecimal distanceKm, Pageable pageable) {
         Page<Route>  routes = routeRepository.findByDistanceKmLessThanEqual(distanceKm, pageable);
         if (routes.isEmpty()) {
             throw new NotFoundException("No routes found with distance <= %s km".formatted(distanceKm));
@@ -119,7 +119,7 @@ public class RouteServiceImpl implements RouteService {
     }
 
     @Override
-    public Page<RouteResponse> getByDistanceKmGreaterThanEqual(BigDecimal distanceKm, Pageable pageable) {
+    public Page<RouteResponse> listByDistanceKmGreaterThanEqual(BigDecimal distanceKm, Pageable pageable) {
         Page<Route> routes = routeRepository.findByDistanceKmGreaterThanEqual(distanceKm, pageable);
         if (routes.isEmpty()) {
             throw new NotFoundException("No routes found with distance >= %s km".formatted(distanceKm));

@@ -70,7 +70,7 @@ public class StopServiceImpl implements StopService {
     }
 
     @Override
-    public List<StopResponse> getByRouteId(Long routeId) {
+    public List<StopResponse> listByRouteId(Long routeId) {
         List<Stop> stops = stopRepository.findByRouteId(routeId);
         if (stops.isEmpty()) {
             throw new NotFoundException("No stops found for route %d".formatted(routeId));
@@ -79,7 +79,7 @@ public class StopServiceImpl implements StopService {
     }
 
     @Override
-    public List<StopResponse> getByRouteIdOrderByOrderAsc(Long routeId) {
+    public List<StopResponse> listByRouteIdOrderByOrderAsc(Long routeId) {
         List<Stop> stops = stopRepository.findByRouteIdOrderByOrderAsc(routeId);
         if (stops.isEmpty()) {
             throw new NotFoundException("No stops found for route %d".formatted(routeId));

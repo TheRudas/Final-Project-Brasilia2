@@ -12,9 +12,9 @@ public interface BaggageService {
     void delete(Long id);
 
     BaggageResponse getByTagCode(String tagCode);
-    List<BaggageResponse> getByPassengerId(Long passengerId);
-    Page<BaggageResponse> getByWeightGreaterThanOrEqual(BigDecimal weightKg, Pageable pageable);
-    Page<BaggageResponse> getByWeightLessThanOrEqual(BigDecimal weightKg, Pageable pageable);
-    Page<BaggageResponse> getByWeightBetween(BigDecimal minKg, BigDecimal maxKg, Pageable pageable);
-    List<BaggageResponse> getAllByTicketId(Long ticketId);
+    List<BaggageResponse> listByPassengerId(Long passengerId);
+    Page<BaggageResponse> listByWeightGreaterThanOrEqual(BigDecimal weightKg, Pageable pageable);
+    Page<BaggageResponse> listByWeightLessThanOrEqual(BigDecimal weightKg, Pageable pageable);
+    Page<BaggageResponse> listByWeightBetween(BigDecimal minKg, BigDecimal maxKg, Pageable pageable);
+    List<BaggageResponse> listByTicketId(Long ticketId);
 }
