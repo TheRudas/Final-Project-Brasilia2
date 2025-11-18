@@ -384,4 +384,66 @@ public class TicketRepositoryTest extends AbstractRepositoryIT {
         // Then
         assertThat(total).isNull(); // SUM returns null when no rows match
     }
+
+    @Test
+    @DisplayName("Ticket: NO_SHOW releases seat for quick sale (venta rápida)")
+    void shouldReleaseNoShowSeatForQuickSale() {
+        // Given: un ticket vendido en asiento A1
+        Ticket soldTicket = Ticket.builder()
+                .trip(trip)
+                .passenger(passenger1)
+                .seatNumber("A1")
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .price(new BigDecimal("150000"))
+                .paymentMethod(PaymentMethod.CARD)
+                .status(TicketStatus.SOLD)
+                .qrCode("QR-SOLD-001")
+                .build();
+        ticketRepository.save(soldTicket);
+
+        // When: verificamos que A1 está ocupado
+        boolean isOccupiedWhenSold = ticketRepository.existsOverlappingTicket(
+                trip.getId(),
+                "A1",
+                fromStop.getOrder(),
+                toStop.getOrder()
+        );
+
+        // Then: debe estar ocupado
+        assertThat(isOccupiedWhenSold).isTrue();
+
+        // When: marcamos el ticket como NO_SHOW (pasajero no abordó)
+        soldTicket.setStatus(TicketStatus.NO_SHOW);
+        soldTicket.setNoShowFee(new BigDecimal("20000"));
+        ticketRepository.save(soldTicket);
+
+        // Then: la silla A1 debe estar disponible para venta rápida
+        boolean isOccupiedAfterNoShow = ticketRepository.existsOverlappingTicket(
+                trip.getId(),
+                "A1",
+                fromStop.getOrder(),
+                toStop.getOrder()
+        );
+        assertThat(isOccupiedAfterNoShow).isFalse(); // ✅ Silla liberada para venta rápida
+
+        // When: otro pasajero compra la misma silla A1 (venta rápida)
+        Ticket quickSaleTicket = Ticket.builder()
+                .trip(trip)
+                .passenger(passenger2) // Otro pasajero
+                .seatNumber("A1") // Misma silla
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .price(new BigDecimal("180000"))
+                .paymentMethod(PaymentMethod.CASH)
+                .status(TicketStatus.SOLD)
+                .qrCode("QR-QUICK-SALE-001")
+                .build();
+        ticketRepository.save(quickSaleTicket);
+
+        // Then: no debe haber error y ambos tickets existen
+        assertThat(ticketRepository.findById(soldTicket.getId())).isPresent();
+        assertThat(ticketRepository.findById(quickSaleTicket.getId())).isPresent();
+        assertThat(ticketRepository.findByTripId(trip.getId())).hasSize(2);
+    }
 }

@@ -45,17 +45,15 @@ public interface TicketRepository extends JpaRepository<Ticket,Long> {
 """)
     List<Ticket> findNoShows(@Param("threshold") OffsetDateTime threshold);
 
-    // Valida si hay solapamiento de tramos: dos rangos [a,b] y [c,d] se solapan si NO (b <= c OR a >= d)
+    // Valida si hay solapamiento de tramos: dos rangos [a,b] y [c,d] se solapan si NO (b <= c OR a >= d) y solo permite tickets con estado 'SOLD'
     @Query("""
-    SELECT COUNT(t) > 0 
+    SELECT COUNT(t) > 0
     FROM Ticket t
     WHERE t.trip.id = :tripId
     AND t.seatNumber = :seatNumber
-    AND t.status != 'CANCELLED'
+    AND t.status = 'SOLD'
     AND NOT (t.toStop.order <= :fromOrder OR t.fromStop.order >= :toOrder)
 """)
-    boolean existsOverlappingTicket(@Param("tripId") Long tripId,
-                                     @Param("seatNumber") String seatNumber,
-                                     @Param("fromOrder") Integer fromOrder,
-                                     @Param("toOrder") Integer toOrder);
+    boolean existsOverlappingTicket(@Param("tripId") Long tripId, @Param("seatNumber") String seatNumber, @Param("fromOrder") Integer fromOrder,
+                                    @Param("toOrder") Integer toOrder);
 }
