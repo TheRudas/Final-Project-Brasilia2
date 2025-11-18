@@ -274,7 +274,7 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of(incident1, incident2));
 
         // When
-        var result = service.getByEntityType(IncidentEntityType.TRIP);
+        var result = service.listByEntityType(IncidentEntityType.TRIP);
 
         // Then
         assertThat(result).hasSize(2);
@@ -293,7 +293,7 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByEntityType(IncidentEntityType.TICKET))
+        assertThatThrownBy(() -> service.listByEntityType(IncidentEntityType.TICKET))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No incidents found for entity type: TICKET");
 
@@ -324,7 +324,7 @@ class IncidentServiceImplTest {
         when(incidentRepository.findByEntityId(50L)).thenReturn(List.of(incident1, incident2));
 
         // When
-        var result = service.getByEntityId(50L);
+        var result = service.listByEntityId(50L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -340,7 +340,7 @@ class IncidentServiceImplTest {
         when(incidentRepository.findByEntityId(999L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByEntityId(999L))
+        assertThatThrownBy(() -> service.listByEntityId(999L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No incidents found for entity Id: 999");
 
@@ -363,12 +363,12 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of(incident));
 
         // When
-        var result = service.getByEntityTypeAndEntityId(IncidentEntityType.TRIP, 100L);
+        var result = service.listByEntityTypeAndEntityId(IncidentEntityType.TRIP, 100L);
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).entityType()).isEqualTo(IncidentEntityType.TRIP);
-        assertThat(result.get(0).entityId()).isEqualTo(100L);
+        assertThat(result.getFirst().entityType()).isEqualTo(IncidentEntityType.TRIP);
+        assertThat(result.getFirst().entityId()).isEqualTo(100L);
 
         verify(incidentRepository).findByEntityTypeAndEntityId(IncidentEntityType.TRIP, 100L);
     }
@@ -380,7 +380,7 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByEntityTypeAndEntityId(IncidentEntityType.TICKET, 500L))
+        assertThatThrownBy(() -> service.listByEntityTypeAndEntityId(IncidentEntityType.TICKET, 500L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No incidents found for TICKET and entity Id: 500");
 
@@ -412,7 +412,7 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of(incident1, incident2));
 
         // When
-        var result = service.getByType(IncidentType.VEHICLE);
+        var result = service.listByType(IncidentType.VEHICLE);
 
         // Then
         assertThat(result).hasSize(2);
@@ -429,7 +429,7 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByType(IncidentType.SECURITY))
+        assertThatThrownBy(() -> service.listByType(IncidentType.SECURITY))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Incidents of SECURITY type not found");
 
@@ -494,7 +494,7 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of(incident1, incident2));
 
         // When
-        var result = service.getByCreatedAtBetween(start, end);
+        var result = service.listByCreatedAtBetween(start, end);
 
         // Then
         assertThat(result).hasSize(2);
@@ -514,7 +514,7 @@ class IncidentServiceImplTest {
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByCreatedAtBetween(start, end))
+        assertThatThrownBy(() -> service.listByCreatedAtBetween(start, end))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No incidents found between")
                 .hasMessageContaining(start.toString())
@@ -539,7 +539,7 @@ class IncidentServiceImplTest {
                 .thenReturn(incidents);
 
         // When
-        var result = service.getByEntityType(IncidentEntityType.TRIP);
+        var result = service.listByEntityType(IncidentEntityType.TRIP);
 
         // Then
         assertThat(result).hasSize(3);

@@ -13,8 +13,8 @@ public interface StopService {
     void delete(Long id);
 
     StopResponse getByNameIgnoreCase(String name);
-    List<StopResponse> getByRouteId(Long routeId);
-    List<StopResponse> getByRouteIdOrderByOrderAsc(Long routeId);
+    List<StopResponse> listByRouteId(Long routeId);
+    List<StopResponse> listByRouteIdOrderByOrderAsc(Long routeId);
     StopResponse getByRouteIdAndNameIgnoreCase(Long routeId, String name);
     StopResponse getByRouteIdAndOrder(Long routeId, Integer order);
 }

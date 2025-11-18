@@ -22,6 +22,7 @@ public interface TicketMapper {
     @Mapping(source = "fromStop.id", target = "fromStopId")
     @Mapping(source = "toStop.id", target = "toStopId")
     @Mapping(source = "passenger.id", target = "passengerId")
+    @Mapping(target = "refundAmount", source = "refundAmount")
     //I want to add some extra data to ticket
     @Mapping(source = "passenger.name", target = "passengerName")
     @Mapping(source = "trip.bus.plate", target = "busPlate")

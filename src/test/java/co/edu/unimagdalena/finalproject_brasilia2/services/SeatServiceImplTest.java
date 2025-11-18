@@ -284,7 +284,7 @@ class SeatServiceImplTest {
         assertThat(response.seatType()).isEqualTo(SeatType.PREFERENTIAL);
 
         verify(seatRepository).findById(10L);
-        verify(seatRepository, never()).existsByBusIdAndNumber(any(), any()); // No valida porque es el mismo número
+        verify(seatRepository, never()).existsByBusIdAndNumber(any(), any()); // No valída porque es el mismo número
         verify(seatRepository).save(any(Seat.class));
     }
 
@@ -464,7 +464,7 @@ class SeatServiceImplTest {
         when(seatRepository.findByBusId(1L)).thenReturn(List.of(seat1, seat2));
 
         // When
-        var result = service.getByBusId(1L);
+        var result = service.listByBusId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -482,7 +482,7 @@ class SeatServiceImplTest {
         when(seatRepository.findByBusId(1L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByBusId(1L))
+        assertThatThrownBy(() -> service.listByBusId(1L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("bus 1 has no seats");
 
@@ -520,7 +520,7 @@ class SeatServiceImplTest {
                 .thenReturn(List.of(seat1, seat2));
 
         // When
-        var result = service.getByBusIdAndSeatType(1L, SeatType.STANDARD);
+        var result = service.listByBusIdAndSeatType(1L, SeatType.STANDARD);
 
         // Then
         assertThat(result).hasSize(2);
@@ -552,11 +552,11 @@ class SeatServiceImplTest {
                 .thenReturn(List.of(seat1));
 
         // When
-        var result = service.getByBusIdAndSeatType(1L, SeatType.PREFERENTIAL);
+        var result = service.listByBusIdAndSeatType(1L, SeatType.PREFERENTIAL);
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).seatType()).isEqualTo(SeatType.PREFERENTIAL);
+        assertThat(result.getFirst().seatType()).isEqualTo(SeatType.PREFERENTIAL);
 
         verify(seatRepository).findByBusIdAndSeatType(1L, SeatType.PREFERENTIAL);
     }
@@ -568,7 +568,7 @@ class SeatServiceImplTest {
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByBusIdAndSeatType(1L, SeatType.PREFERENTIAL))
+        assertThatThrownBy(() -> service.listByBusIdAndSeatType(1L, SeatType.PREFERENTIAL))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("bus 1 has no PREFERENTIAL seats");
 
@@ -661,7 +661,7 @@ class SeatServiceImplTest {
                 .thenReturn(List.of(seat1, seat2, seat3));
 
         // When
-        var result = service.getByBusIdOrderByNumberAsc(1L);
+        var result = service.listByBusIdOrderByNumberAsc(1L);
 
         // Then
         assertThat(result).hasSize(3);
@@ -678,7 +678,7 @@ class SeatServiceImplTest {
         when(seatRepository.findByBusIdOrderByNumberAsc(1L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByBusIdOrderByNumberAsc(1L))
+        assertThatThrownBy(() -> service.listByBusIdOrderByNumberAsc(1L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("bus 1 has no seats");
 

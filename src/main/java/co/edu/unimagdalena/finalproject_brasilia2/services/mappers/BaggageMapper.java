@@ -13,6 +13,8 @@ public interface BaggageMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "ticket", ignore = true)
+    @Mapping(target = "tagCode", ignore = true)
+    @Mapping(target = "fee", ignore = true)
     Baggage toEntity(BaggageCreateRequest request);
 
     @Mapping(source = "ticket.id", target = "ticketId")

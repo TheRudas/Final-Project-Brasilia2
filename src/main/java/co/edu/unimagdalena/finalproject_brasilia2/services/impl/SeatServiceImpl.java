@@ -34,6 +34,15 @@ public class SeatServiceImpl implements SeatService {
             throw new IllegalStateException("seat %s already exists in this bus".formatted(request.number()));
         }
 
+        //verify capacity isn't exceeded
+        Long currentSeats = seatRepository.countByBusId(request.busId());
+        if (currentSeats >= bus.getCapacity()) {
+            throw new IllegalStateException(
+                    "Bus capacity exceeded: %d/%d seats already registered"
+                            .formatted(currentSeats, bus.getCapacity())
+            );
+        }
+
         var seat = mapper.toEntity(request);
         seat.setBus(bus);
         return mapper.toResponse(seatRepository.save(seat));
@@ -72,7 +81,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    public List<SeatResponse> getByBusId(Long busId) {
+    public List<SeatResponse> listByBusId(Long busId) {
         List<Seat> seats = seatRepository.findByBusId(busId);
         if (seats.isEmpty()) {
             throw new NotFoundException("bus %d has no seats".formatted(busId));
@@ -81,7 +90,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    public List<SeatResponse> getByBusIdAndSeatType(Long busId, SeatType seatType) {
+    public List<SeatResponse> listByBusIdAndSeatType(Long busId, SeatType seatType) {
         List<Seat> seats = seatRepository.findByBusIdAndSeatType(busId, seatType);
         if (seats.isEmpty()) {
             throw new NotFoundException("bus %d has no %s seats".formatted(busId, seatType));
@@ -97,7 +106,7 @@ public class SeatServiceImpl implements SeatService {
     }
 
     @Override
-    public List<SeatResponse> getByBusIdOrderByNumberAsc(Long busId) {
+    public List<SeatResponse> listByBusIdOrderByNumberAsc(Long busId) {
         List<Seat> seats = seatRepository.findByBusIdOrderByNumberAsc(busId);
         if (seats.isEmpty()) {
             throw new NotFoundException("bus %d has no seats".formatted(busId));

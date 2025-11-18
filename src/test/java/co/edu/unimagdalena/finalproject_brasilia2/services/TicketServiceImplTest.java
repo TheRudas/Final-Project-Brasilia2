@@ -41,8 +41,16 @@ class TicketServiceImplTest {
     private UserRepository userRepository;
     @Mock
     private StopRepository stopRepository;
+
+    @Mock
+    private SeatRepository seatRepository;
+
+    @Mock
+    private ConfigService configService;
+
     @Spy
     private TicketMapper mapper = Mappers.getMapper(TicketMapper.class);
+
     @InjectMocks
     private TicketServiceImpl service;
     // Helper method to create test data
@@ -81,13 +89,21 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Bogota", 1);
         var toStop = createTestStop(route, "Terminal Medellin", 5);
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(1L, 1L, "A1", 1L, 5L, new BigDecimal("50000.00"), PaymentMethod.CARD);
 
         when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(ticketRepository.findByTripAndSeatNumber(trip, "A1")).thenReturn(Optional.empty());
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
+        when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(false);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> {
             Ticket t = inv.getArgument(0);
             t.setId(10L);
@@ -115,7 +131,8 @@ class TicketServiceImplTest {
         verify(userRepository).findById(1L);
         verify(stopRepository).findById(1L);
         verify(stopRepository).findById(5L);
-        verify(ticketRepository).findByTripAndSeatNumber(trip, "A1");
+        verify(seatRepository).findByBusIdAndNumber(bus.getId(), "A1");
+        verify(ticketRepository).existsOverlappingTicket(1L, "A1", 1, 5);
         verify(ticketRepository).save(any(Ticket.class));
     }
 
@@ -224,6 +241,13 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(otherRoute, "Another Terminal", 1); // Different route!
         var toStop = createTestStop(route, "Terminal Medellin", 5);
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(
                 1L, 1L, "A1", 1L, 5L,
                 new BigDecimal("50000.00"), PaymentMethod.CARD
@@ -233,6 +257,7 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
@@ -253,6 +278,13 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Bogota", 1);
         var toStop = createTestStop(otherRoute, "Another Terminal", 5); // Different route!
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(
                 1L, 1L, "A1", 1L, 5L,
                 new BigDecimal("50000.00"), PaymentMethod.CARD
@@ -262,6 +294,7 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
@@ -281,6 +314,13 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Medellin", 5);
         var toStop = createTestStop(route, "Terminal Bogota", 1);
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(
                 1L, 1L, "A1", 5L, 1L, // fromStop order > toStop order
                 new BigDecimal("50000.00"), PaymentMethod.CARD
@@ -290,6 +330,7 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(toStop));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
@@ -309,10 +350,11 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Bogota", 1);
         var toStop = createTestStop(route, "Terminal Medellin", 5);
 
-        var existingTicket = Ticket.builder()
+        var seat = Seat.builder()
                 .id(1L)
-                .trip(trip)
-                .seatNumber("A1")
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
                 .build();
 
         var request = new TicketCreateRequest(
@@ -324,13 +366,13 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(ticketRepository.findByTripAndSeatNumber(trip, "A1"))
-                .thenReturn(Optional.of(existingTicket));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
+        when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(true);
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Seat A1 already sold for this trip");
+                .hasMessageContaining("Seat A1 is already occupied in overlapping segment");
 
         verify(ticketRepository, never()).save(any());
     }
@@ -672,7 +714,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByPassengerId(1L)).thenReturn(List.of(ticket1, ticket2));
 
         // When
-        var result = service.getByPassengerId(1L);
+        var result = service.listByPassengerId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -688,7 +730,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByPassengerId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByPassengerId(99L))
+        assertThatThrownBy(() -> service.listByPassengerId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found for passenger 99");
 
@@ -736,7 +778,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByTripId(1L)).thenReturn(List.of(ticket1, ticket2));
 
         // When
-        var result = service.getByTripId(1L);
+        var result = service.listByTripId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -752,7 +794,7 @@ class TicketServiceImplTest {
         when(ticketRepository.findByTripId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByTripId(99L))
+        assertThatThrownBy(() -> service.listByTripId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found for trip 99");
 
@@ -789,11 +831,11 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(ticket)));
 
         // When
-        var result = service.getByPaymentMethod(PaymentMethod.CARD, pageable);
+        var result = service.listByPaymentMethod(PaymentMethod.CARD, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).paymentMethod()).isEqualTo(PaymentMethod.CARD);
+        assertThat(result.getContent().getFirst().paymentMethod()).isEqualTo(PaymentMethod.CARD);
 
         verify(ticketRepository).findByPaymentMethod(PaymentMethod.CARD, pageable);
     }
@@ -806,7 +848,7 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of()));
 
         // When / Then
-        assertThatThrownBy(() -> service.getByPaymentMethod(PaymentMethod.QR, pageable))
+        assertThatThrownBy(() -> service.listByPaymentMethod(PaymentMethod.QR, pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found with payment method QR");
 
@@ -834,11 +876,11 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(ticket)));
 
         // When
-        var result = service.getByStatus(TicketStatus.SOLD, pageable);
+        var result = service.listByStatus(TicketStatus.SOLD, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).status()).isEqualTo(TicketStatus.SOLD);
+        assertThat(result.getContent().getFirst().status()).isEqualTo(TicketStatus.SOLD);
 
         verify(ticketRepository).findByStatus(TicketStatus.SOLD, pageable);
     }
@@ -864,12 +906,12 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of(ticket)));
 
         // When
-        var result = service.getBetweenStops(1L, 5L, pageable);
+        var result = service.listBetweenStops(1L, 5L, pageable);
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).fromStopId()).isEqualTo(1L);
-        assertThat(result.getContent().get(0).toStopId()).isEqualTo(5L);
+        assertThat(result.getContent().getFirst().fromStopId()).isEqualTo(1L);
+        assertThat(result.getContent().getFirst().toStopId()).isEqualTo(5L);
 
         verify(ticketRepository).findAllBetweenOptionalStops(1L, 5L, pageable);
     }
@@ -882,7 +924,7 @@ class TicketServiceImplTest {
                 .thenReturn(new PageImpl<>(List.of()));
 
         // When / Then
-        assertThatThrownBy(() -> service.getBetweenStops(1L, 5L, pageable))
+        assertThatThrownBy(() -> service.listBetweenStops(1L, 5L, pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No tickets found between stops");
 
@@ -926,7 +968,15 @@ class TicketServiceImplTest {
         // Given
         var route = createTestRoute();
         var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
+        var trip = Trip.builder()
+                .id(1L)
+                .route(route)
+                .bus(bus)
+                .date(LocalDate.now())
+                .departureTime(OffsetDateTime.now().plusHours(25)) // Más de 24 horas
+                .arrivalTime(OffsetDateTime.now().plusHours(31))
+                .status(TripStatus.SCHEDULED)
+                .build();
         var passenger = createTestPassenger();
         var fromStop = createTestStop(route, "Terminal Bogota", 1);
         var toStop = createTestStop(route, "Terminal Medellin", 5);
@@ -936,6 +986,7 @@ class TicketServiceImplTest {
                 .paymentMethod(PaymentMethod.CARD).status(TicketStatus.SOLD).qrCode("QR-ABC123").build();
 
         when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+        when(configService.getValue("REFUND_24H_PERCENT")).thenReturn(new BigDecimal("100"));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // When
@@ -944,8 +995,10 @@ class TicketServiceImplTest {
         // Then
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.status()).isEqualTo(TicketStatus.CANCELLED);
+        assertThat(response.refundAmount()).isEqualByComparingTo(new BigDecimal("50000.00"));
 
         verify(ticketRepository).findById(10L);
+        verify(configService).getValue("REFUND_24H_PERCENT");
         verify(ticketRepository).save(any(Ticket.class));
     }
 
@@ -1000,4 +1053,160 @@ class TicketServiceImplTest {
         verify(ticketRepository).findById(10L);
         verify(ticketRepository, never()).save(any());
     }
+
+    @Test
+    void shouldRefundFullAmountWhenCancel24HoursInAdvance() {
+        // Given
+        var route = createTestRoute();
+        var bus = createTestBus();
+        var trip = Trip.builder()
+                .id(1L)
+                .route(route)
+                .bus(bus)
+                .date(LocalDate.now())
+                .departureTime(OffsetDateTime.now().plusHours(25)) // 25 horas en el futuro
+                .arrivalTime(OffsetDateTime.now().plusHours(31))
+                .status(TripStatus.SCHEDULED)
+                .build();
+        var passenger = createTestPassenger();
+        var fromStop = createTestStop(route, "Terminal Bogota", 1);
+        var toStop = createTestStop(route, "Terminal Medellin", 5);
+
+        var ticket = Ticket.builder()
+                .id(10L).trip(trip).passenger(passenger).seatNumber("A1").fromStop(fromStop).toStop(toStop).price(new BigDecimal("50000.00"))
+                .paymentMethod(PaymentMethod.CARD).status(TicketStatus.SOLD).qrCode("QR-ABC123")
+                .build();
+
+        when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+        when(configService.getValue("REFUND_24H_PERCENT")).thenReturn(new BigDecimal("100")); // 100%
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        var response = service.cancel(10L);
+
+        // Then
+        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.status()).isEqualTo(TicketStatus.CANCELLED);
+        assertThat(response.refundAmount()).isEqualByComparingTo(new BigDecimal("50000.00")); // 100% de 50000
+
+        verify(ticketRepository).findById(10L);
+        verify(configService).getValue("REFUND_24H_PERCENT");
+        verify(ticketRepository).save(any(Ticket.class));
+    }
+
+    @Test
+    void shouldRefund50PercentWhenCancel12HoursInAdvance() {
+        // Given
+        var route = createTestRoute();
+        var bus = createTestBus();
+        var trip = Trip.builder()
+                .id(1L)
+                .route(route)
+                .bus(bus)
+                .date(LocalDate.now())
+                .departureTime(OffsetDateTime.now().plusHours(13)) // 13 horas en el futuro
+                .arrivalTime(OffsetDateTime.now().plusHours(19))
+                .status(TripStatus.SCHEDULED)
+                .build();
+        var passenger = createTestPassenger();
+        var fromStop = createTestStop(route, "Terminal Bogota", 1);
+        var toStop = createTestStop(route, "Terminal Medellin", 5);
+
+        var ticket = Ticket.builder()
+                .id(10L).trip(trip).passenger(passenger).seatNumber("A1").fromStop(fromStop).toStop(toStop).price(new BigDecimal("50000.00"))
+                .paymentMethod(PaymentMethod.CARD).status(TicketStatus.SOLD).qrCode("QR-ABC123")
+                .build();
+
+        when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+        when(configService.getValue("REFUND_12H_PERCENT")).thenReturn(new BigDecimal("50")); // 50%
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        var response = service.cancel(10L);
+
+        // Then
+        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.status()).isEqualTo(TicketStatus.CANCELLED);
+        assertThat(response.refundAmount()).isEqualByComparingTo(new BigDecimal("25000.00")); // 50% de 50000
+
+        verify(ticketRepository).findById(10L);
+        verify(configService).getValue("REFUND_12H_PERCENT");
+        verify(ticketRepository).save(any(Ticket.class));
+    }
+
+    @Test
+    void shouldRefund0PercentWhenCancel2HoursInAdvance() {
+        // Given
+        var route = createTestRoute();
+        var bus = createTestBus();
+        var trip = Trip.builder()
+                .id(1L)
+                .route(route)
+                .bus(bus)
+                .date(LocalDate.now())
+                .departureTime(OffsetDateTime.now().plusHours(3)) // 3 horas en el futuro
+                .arrivalTime(OffsetDateTime.now().plusHours(9))
+                .status(TripStatus.SCHEDULED)
+                .build();
+        var passenger = createTestPassenger();
+        var fromStop = createTestStop(route, "Terminal Bogota", 1);
+        var toStop = createTestStop(route, "Terminal Medellin", 5);
+
+        var ticket = Ticket.builder()
+                .id(10L).trip(trip).passenger(passenger).seatNumber("A1").fromStop(fromStop).toStop(toStop).price(new BigDecimal("50000.00"))
+                .paymentMethod(PaymentMethod.CARD).status(TicketStatus.SOLD).qrCode("QR-ABC123")
+                .build();
+
+        when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+        when(configService.getValue("REFUND_2H_PERCENT")).thenReturn(new BigDecimal("0")); // 0%
+        when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        var response = service.cancel(10L);
+
+        // Then
+        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.status()).isEqualTo(TicketStatus.CANCELLED);
+        assertThat(response.refundAmount()).isEqualByComparingTo(new BigDecimal("0.00")); // 0% de 50000
+
+        verify(ticketRepository).findById(10L);
+        verify(configService).getValue("REFUND_2H_PERCENT");
+        verify(ticketRepository).save(any(Ticket.class));
+    }
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenCancelLessThan2HoursInAdvance() {
+        // Given
+        var route = createTestRoute();
+        var bus = createTestBus();
+        var trip = Trip.builder()
+                .id(1L)
+                .route(route)
+                .bus(bus)
+                .date(LocalDate.now())
+                .departureTime(OffsetDateTime.now().plusHours(1)) // Solo 1 hora
+                .arrivalTime(OffsetDateTime.now().plusHours(7))
+                .status(TripStatus.SCHEDULED)
+                .build();
+        var passenger = createTestPassenger();
+        var fromStop = createTestStop(route, "Terminal Bogota", 1);
+        var toStop = createTestStop(route, "Terminal Medellin", 5);
+
+        var ticket = Ticket.builder()
+                .id(10L).trip(trip).passenger(passenger).seatNumber("A1").fromStop(fromStop).toStop(toStop).price(new BigDecimal("50000.00"))
+                .paymentMethod(PaymentMethod.CARD).status(TicketStatus.SOLD).qrCode("QR-ABC123")
+                .build();
+
+        when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+
+        // When / Then
+        assertThatThrownBy(() -> service.cancel(10L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cancellations must be made at least 2 hours before departure");
+
+        verify(ticketRepository).findById(10L);
+        verify(ticketRepository, never()).save(any());
+    }
 }
+
+

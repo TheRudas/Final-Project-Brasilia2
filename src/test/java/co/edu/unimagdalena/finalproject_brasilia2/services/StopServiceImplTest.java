@@ -49,6 +49,7 @@ class StopServiceImplTest {
 
         when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
         when(stopRepository.existsByRouteIdAndOrder(1L, 1)).thenReturn(false);
+        when(stopRepository.findByRouteIdOrderByOrderAsc(1L)).thenReturn(List.of()); // No hay stops previos (primer stop)
         when(stopRepository.save(any(Stop.class))).thenAnswer(inv -> {
             Stop s = inv.getArgument(0);
             s.setId(10L);
@@ -68,6 +69,7 @@ class StopServiceImplTest {
 
         verify(routeRepository).findById(1L);
         verify(stopRepository).existsByRouteIdAndOrder(1L, 1);
+        verify(stopRepository).findByRouteIdOrderByOrderAsc(1L);
         verify(stopRepository).save(any(Stop.class));
     }
 
@@ -119,6 +121,61 @@ class StopServiceImplTest {
     }
 
     @Test
+    void shouldThrowIllegalArgumentExceptionWhenFirstStopIsNotOrder1() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var request = new StopCreateRequest(
+                1L,
+                "Terminal del Norte",
+                2, // Primer stop debe ser order 1
+                4.7110,
+                -74.0721
+        );
+
+        when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
+        when(stopRepository.existsByRouteIdAndOrder(1L, 2)).thenReturn(false);
+        when(stopRepository.findByRouteIdOrderByOrderAsc(1L)).thenReturn(List.of()); // No hay stops previos
+
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("First stop must have order 1");
+
+        verify(stopRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionWhenOrderIsNotConsecutive() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var existingStop = Stop.builder()
+                .id(1L)
+                .route(route)
+                .name("Stop 1")
+                .order(1)
+                .build();
+
+        var request = new StopCreateRequest(
+                1L,
+                "Terminal del Norte",
+                3, // Debería ser 2 (consecutivo al 1)
+                4.7110,
+                -74.0721
+        );
+
+        when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
+        when(stopRepository.existsByRouteIdAndOrder(1L, 3)).thenReturn(false);
+        when(stopRepository.findByRouteIdOrderByOrderAsc(1L)).thenReturn(List.of(existingStop));
+
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Order must be consecutive. Expected: 2, Got: 3");
+
+        verify(stopRepository, never()).save(any());
+    }
+
+    @Test
     void shouldUpdateStopSuccessfully() {
         // Given
         var route = Route.builder().id(1L).build();
@@ -152,7 +209,7 @@ class StopServiceImplTest {
         assertThat(response.lng()).isEqualTo(-74.2973);
 
         verify(stopRepository).findById(10L);
-        verify(stopRepository, never()).existsByRouteIdAndOrder(any(), any()); // No valida porque el order no cambio
+        verify(stopRepository, never()).existsByRouteIdAndOrder(any(), any()); // No valída porque el order no cambio
         verify(stopRepository).save(any(Stop.class));
     }
 
@@ -402,7 +459,7 @@ class StopServiceImplTest {
         when(stopRepository.findByRouteId(1L)).thenReturn(List.of(stop1, stop2));
 
         // When
-        var result = service.getByRouteId(1L);
+        var result = service.listByRouteId(1L);
 
         // Then
         assertThat(result).hasSize(2);
@@ -420,7 +477,7 @@ class StopServiceImplTest {
         when(stopRepository.findByRouteId(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByRouteId(99L))
+        assertThatThrownBy(() -> service.listByRouteId(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No stops found for route 99");
 
@@ -463,7 +520,7 @@ class StopServiceImplTest {
                 .thenReturn(List.of(stop1, stop2, stop3));
 
         // When
-        var result = service.getByRouteIdOrderByOrderAsc(1L);
+        var result = service.listByRouteIdOrderByOrderAsc(1L);
 
         // Then
         assertThat(result).hasSize(3);
@@ -483,7 +540,7 @@ class StopServiceImplTest {
         when(stopRepository.findByRouteIdOrderByOrderAsc(99L)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByRouteIdOrderByOrderAsc(99L))
+        assertThatThrownBy(() -> service.listByRouteIdOrderByOrderAsc(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No stops found for route 99");
 

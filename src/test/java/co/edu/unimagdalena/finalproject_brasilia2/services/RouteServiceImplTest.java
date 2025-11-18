@@ -386,7 +386,7 @@ class RouteServiceImplTest {
         when(routeRepository.findByOrigin("Bogota")).thenReturn(List.of(route1, route2));
 
         // When
-        var result = service.getByOrigin("Bogota");
+        var result = service.listByOrigin("Bogota");
 
         // Then
         assertThat(result).hasSize(2);
@@ -402,7 +402,7 @@ class RouteServiceImplTest {
         when(routeRepository.findByOrigin("Ciudad Inexistente")).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByOrigin("Ciudad Inexistente"))
+        assertThatThrownBy(() -> service.listByOrigin("Ciudad Inexistente"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Route from origin Ciudad Inexistente not found");
 
@@ -437,7 +437,7 @@ class RouteServiceImplTest {
         when(routeRepository.findByDestination("Medellin")).thenReturn(List.of(route1, route2));
 
         // When
-        var result = service.getByDestination("Medellin");
+        var result = service.listByDestination("Medellin");
 
         // Then
         assertThat(result).hasSize(2);
@@ -453,7 +453,7 @@ class RouteServiceImplTest {
         when(routeRepository.findByDestination("Ciudad Inexistente")).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByDestination("Ciudad Inexistente"))
+        assertThatThrownBy(() -> service.listByDestination("Ciudad Inexistente"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Route to destination Ciudad Inexistente not found");
 
@@ -479,12 +479,12 @@ class RouteServiceImplTest {
                 .thenReturn(List.of(route1));
 
         // When
-        var result = service.getByOriginAndDestination("Bogota", "Medellin");
+        var result = service.listByOriginAndDestination("Bogota", "Medellin");
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).origin()).isEqualTo("Bogota");
-        assertThat(result.get(0).destination()).isEqualTo("Medellin");
+        assertThat(result.getFirst().origin()).isEqualTo("Bogota");
+        assertThat(result.getFirst().destination()).isEqualTo("Medellin");
 
         verify(routeRepository).findByOriginAndDestination("Bogota", "Medellin");
     }
@@ -496,7 +496,7 @@ class RouteServiceImplTest {
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByOriginAndDestination("Ciudad A", "Ciudad B"))
+        assertThatThrownBy(() -> service.listByOriginAndDestination("Ciudad A", "Ciudad B"))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Route from Ciudad A to Ciudad B not found");
 
@@ -532,7 +532,7 @@ class RouteServiceImplTest {
                 .thenReturn(List.of(route1, route2));
 
         // When
-        var result = service.getByDurationMinBetween(200, 400);
+        var result = service.listByDurationMinBetween(200, 400);
 
         // Then
         assertThat(result).hasSize(2);
@@ -548,7 +548,7 @@ class RouteServiceImplTest {
         when(routeRepository.findByDurationMinBetween(1000, 2000)).thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.getByDurationMinBetween(1000, 2000))
+        assertThatThrownBy(() -> service.listByDurationMinBetween(1000, 2000))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No routes found with duration between 1000 and 2000 minutes");
 
@@ -586,7 +586,7 @@ class RouteServiceImplTest {
         when(routeRepository.findByDurationMinLessThanEqual(360, pageable)).thenReturn(page);
 
         // When
-        var result = service.getByDurationMinLessThanEqual(360, pageable);
+        var result = service.listByDurationMinLessThanEqual(360, pageable);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -606,7 +606,7 @@ class RouteServiceImplTest {
         when(routeRepository.findByDurationMinLessThanEqual(100, pageable)).thenReturn(page);
 
         // When / Then
-        assertThatThrownBy(() -> service.getByDurationMinLessThanEqual(100, pageable))
+        assertThatThrownBy(() -> service.listByDurationMinLessThanEqual(100, pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No routes found with duration <= 100 minutes");
 
@@ -645,7 +645,7 @@ class RouteServiceImplTest {
                 .thenReturn(page);
 
         // When
-        var result = service.getByDistanceKmLessThanEqual(new BigDecimal("400.00"), pageable);
+        var result = service.listByDistanceKmLessThanEqual(new BigDecimal("400.00"), pageable);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -668,7 +668,7 @@ class RouteServiceImplTest {
                 .thenReturn(page);
 
         // When / Then
-        assertThatThrownBy(() -> service.getByDistanceKmLessThanEqual(new BigDecimal("50.00"), pageable))
+        assertThatThrownBy(() -> service.listByDistanceKmLessThanEqual(new BigDecimal("50.00"), pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No routes found with distance <= 50.00 km");
 
@@ -707,7 +707,7 @@ class RouteServiceImplTest {
                 .thenReturn(page);
 
         // When
-        var result = service.getByDistanceKmGreaterThanEqual(new BigDecimal("500.00"), pageable);
+        var result = service.listByDistanceKmGreaterThanEqual(new BigDecimal("500.00"), pageable);
 
         // Then
         assertThat(result.getTotalElements()).isEqualTo(2);
@@ -730,7 +730,7 @@ class RouteServiceImplTest {
                 .thenReturn(page);
 
         // When / Then
-        assertThatThrownBy(() -> service.getByDistanceKmGreaterThanEqual(new BigDecimal("2000.00"), pageable))
+        assertThatThrownBy(() -> service.listByDistanceKmGreaterThanEqual(new BigDecimal("2000.00"), pageable))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("No routes found with distance >= 2000.00 km");
 
