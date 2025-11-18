@@ -63,13 +63,10 @@ class BaggageServiceImplTest {
 
         var request = new BaggageCreateRequest(
                 5L,
-                new BigDecimal("25.00"), // 25kg
-                new BigDecimal("0"), // Fee será calculado automáticamente
-                "BAG-ABC12345"
+                new BigDecimal("25.00") // 25kg - tagCode y fee se autogeneran
         );
 
         when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
-        when(baggageRepository.findByTagCode("BAG-ABC12345")).thenReturn(Optional.empty());
         when(configService.getValue("BAGGAGE_MAX_FREE_WEIGHT_KG")).thenReturn(new BigDecimal("20"));
         when(configService.getValue("BAGGAGE_FEE_PER_EXCESS_KG")).thenReturn(new BigDecimal("2000"));
         when(baggageRepository.save(any(Baggage.class))).thenAnswer(inv -> {
@@ -88,10 +85,9 @@ class BaggageServiceImplTest {
         assertThat(response.weightKg()).isEqualByComparingTo(new BigDecimal("25.00"));
         // Fee calculado: (25 - 20) * 2000 = 10000
         assertThat(response.fee()).isEqualByComparingTo(new BigDecimal("10000"));
-        assertThat(response.tagCode()).isEqualTo("BAG-ABC12345");
+        assertThat(response.tagCode()).startsWith("BAG-"); // Auto-generado
 
         verify(ticketRepository).findById(5L);
-        verify(baggageRepository).findByTagCode("BAG-ABC12345");
         verify(configService).getValue("BAGGAGE_MAX_FREE_WEIGHT_KG");
         verify(configService).getValue("BAGGAGE_FEE_PER_EXCESS_KG");
         verify(baggageRepository).save(any(Baggage.class));
@@ -102,9 +98,7 @@ class BaggageServiceImplTest {
         // Given
         var request = new BaggageCreateRequest(
                 99L,
-                new BigDecimal("15.50"),
-                new BigDecimal("25000.00"),
-                "BAG-ABC12345"
+                new BigDecimal("15.50")
         );
         when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -114,40 +108,6 @@ class BaggageServiceImplTest {
                 .hasMessageContaining("Ticket not found with id: 99");
 
         verify(ticketRepository).findById(99L);
-        verify(baggageRepository, never()).findByTagCode(any());
-        verify(baggageRepository, never()).save(any());
-    }
-
-    @Test
-    void shouldThrowIllegalStateExceptionWhenTagCodeAlreadyExists() {
-        // Given
-        var ticket = Ticket.builder()
-                .id(5L)
-                .status(co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus.SOLD)
-                .build();
-        var existingBaggage = Baggage.builder()
-                .id(1L)
-                .tagCode("BAG-ABC12345")
-                .build();
-
-        var request = new BaggageCreateRequest(
-                5L,
-                new BigDecimal("15.50"),
-                new BigDecimal("25000.00"),
-                "BAG-ABC12345"
-        );
-
-        when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
-        when(baggageRepository.findByTagCode("BAG-ABC12345"))
-                .thenReturn(Optional.of(existingBaggage));
-
-        // When / Then
-        assertThatThrownBy(() -> service.create(request))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Baggage tag BAG-ABC12345 already exists");
-
-        verify(ticketRepository).findById(5L);
-        verify(baggageRepository).findByTagCode("BAG-ABC12345");
         verify(baggageRepository, never()).save(any());
     }
 
@@ -161,13 +121,10 @@ class BaggageServiceImplTest {
 
         var request = new BaggageCreateRequest(
                 5L,
-                new BigDecimal("15.50"),
-                new BigDecimal("0"),
-                "BAG-ABC12345"
+                new BigDecimal("15.50")
         );
 
         when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
-        when(baggageRepository.findByTagCode("BAG-ABC12345")).thenReturn(Optional.empty());
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
@@ -175,7 +132,6 @@ class BaggageServiceImplTest {
                 .hasMessageContaining("Cannot add baggage to a NON-SOLD ticket");
 
         verify(ticketRepository).findById(5L);
-        verify(baggageRepository).findByTagCode("BAG-ABC12345");
         verify(configService, never()).getValue(any());
         verify(baggageRepository, never()).save(any());
     }
