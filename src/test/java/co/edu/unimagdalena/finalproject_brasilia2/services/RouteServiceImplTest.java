@@ -483,8 +483,8 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).origin()).isEqualTo("Bogota");
-        assertThat(result.get(0).destination()).isEqualTo("Medellin");
+        assertThat(result.getFirst().origin()).isEqualTo("Bogota");
+        assertThat(result.getFirst().destination()).isEqualTo("Medellin");
 
         verify(routeRepository).findByOriginAndDestination("Bogota", "Medellin");
     }

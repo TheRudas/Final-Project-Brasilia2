@@ -27,6 +27,7 @@ public class TicketServiceImpl implements TicketService {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
     private final StopRepository stopRepository;
+    private final SeatRepository seatRepository;
     private final TicketMapper mapper;
 
     @Override
@@ -45,8 +46,15 @@ public class TicketServiceImpl implements TicketService {
 
         Stop toStop = stopRepository.findById(request.toStopId())
                 .orElseThrow(() -> new NotFoundException("ToStop %d not found".formatted(request.toStopId())));
-        //belong
 
+        //Validate if seats exist in bus
+        seatRepository.findByBusIdAndNumber(trip.getBus().getId(), request.seatNumber())
+                .orElseThrow(() -> new NotFoundException(
+                        "Seat %s does not exist in bus %s"
+                                .formatted(request.seatNumber(), trip.getBus().getPlate())
+                ));
+
+        //belong
         if (!fromStop.getRoute().getId().equals(trip.getRoute().getId())) {
             throw new IllegalStateException("FromStop doesn't belong to trip's route");
         }
@@ -58,8 +66,12 @@ public class TicketServiceImpl implements TicketService {
         if (fromStop.getOrder() >= toStop.getOrder()) {
             throw new IllegalStateException("FromStop order must be less than ToStop order");
         }
-        if (ticketRepository.findByTripAndSeatNumber(trip, request.seatNumber()).isPresent()) {
-            throw new IllegalStateException("Seat %s already sold for this trip".formatted(request.seatNumber()));
+
+        // Validate seat availability in overlapping segments
+        if (ticketRepository.existsOverlappingTicket(trip.getId(), request.seatNumber(), fromStop.getOrder(), toStop.getOrder())) {
+            throw new IllegalStateException("Seat %s is already occupied in overlapping segment between stops %d and %d"
+                    .formatted(request.seatNumber(), fromStop.getOrder(), toStop.getOrder())
+            );
         }
 
         // Crear ticket

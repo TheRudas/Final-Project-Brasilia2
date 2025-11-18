@@ -41,8 +41,12 @@ class TicketServiceImplTest {
     private UserRepository userRepository;
     @Mock
     private StopRepository stopRepository;
+
+    @Mock
+    private SeatRepository seatRepository;
     @Spy
     private TicketMapper mapper = Mappers.getMapper(TicketMapper.class);
+
     @InjectMocks
     private TicketServiceImpl service;
     // Helper method to create test data
@@ -81,13 +85,21 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Bogota", 1);
         var toStop = createTestStop(route, "Terminal Medellin", 5);
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(1L, 1L, "A1", 1L, 5L, new BigDecimal("50000.00"), PaymentMethod.CARD);
 
         when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(ticketRepository.findByTripAndSeatNumber(trip, "A1")).thenReturn(Optional.empty());
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
+        when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(false);
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> {
             Ticket t = inv.getArgument(0);
             t.setId(10L);
@@ -115,7 +127,8 @@ class TicketServiceImplTest {
         verify(userRepository).findById(1L);
         verify(stopRepository).findById(1L);
         verify(stopRepository).findById(5L);
-        verify(ticketRepository).findByTripAndSeatNumber(trip, "A1");
+        verify(seatRepository).findByBusIdAndNumber(bus.getId(), "A1");
+        verify(ticketRepository).existsOverlappingTicket(1L, "A1", 1, 5);
         verify(ticketRepository).save(any(Ticket.class));
     }
 
@@ -224,6 +237,13 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(otherRoute, "Another Terminal", 1); // Different route!
         var toStop = createTestStop(route, "Terminal Medellin", 5);
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(
                 1L, 1L, "A1", 1L, 5L,
                 new BigDecimal("50000.00"), PaymentMethod.CARD
@@ -233,6 +253,7 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
@@ -253,6 +274,13 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Bogota", 1);
         var toStop = createTestStop(otherRoute, "Another Terminal", 5); // Different route!
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(
                 1L, 1L, "A1", 1L, 5L,
                 new BigDecimal("50000.00"), PaymentMethod.CARD
@@ -262,6 +290,7 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
@@ -281,6 +310,13 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Medellin", 5);
         var toStop = createTestStop(route, "Terminal Bogota", 1);
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new TicketCreateRequest(
                 1L, 1L, "A1", 5L, 1L, // fromStop order > toStop order
                 new BigDecimal("50000.00"), PaymentMethod.CARD
@@ -290,6 +326,7 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(toStop));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
@@ -309,10 +346,11 @@ class TicketServiceImplTest {
         var fromStop = createTestStop(route, "Terminal Bogota", 1);
         var toStop = createTestStop(route, "Terminal Medellin", 5);
 
-        var existingTicket = Ticket.builder()
+        var seat = Seat.builder()
                 .id(1L)
-                .trip(trip)
-                .seatNumber("A1")
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
                 .build();
 
         var request = new TicketCreateRequest(
@@ -324,13 +362,13 @@ class TicketServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
         when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(ticketRepository.findByTripAndSeatNumber(trip, "A1"))
-                .thenReturn(Optional.of(existingTicket));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
+        when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(true);
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Seat A1 already sold for this trip");
+                .hasMessageContaining("Seat A1 is already occupied in overlapping segment");
 
         verify(ticketRepository, never()).save(any());
     }
@@ -793,7 +831,7 @@ class TicketServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).paymentMethod()).isEqualTo(PaymentMethod.CARD);
+        assertThat(result.getContent().getFirst().paymentMethod()).isEqualTo(PaymentMethod.CARD);
 
         verify(ticketRepository).findByPaymentMethod(PaymentMethod.CARD, pageable);
     }
@@ -838,7 +876,7 @@ class TicketServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).status()).isEqualTo(TicketStatus.SOLD);
+        assertThat(result.getContent().getFirst().status()).isEqualTo(TicketStatus.SOLD);
 
         verify(ticketRepository).findByStatus(TicketStatus.SOLD, pageable);
     }
@@ -868,8 +906,8 @@ class TicketServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).fromStopId()).isEqualTo(1L);
-        assertThat(result.getContent().get(0).toStopId()).isEqualTo(5L);
+        assertThat(result.getContent().getFirst().fromStopId()).isEqualTo(1L);
+        assertThat(result.getContent().getFirst().toStopId()).isEqualTo(5L);
 
         verify(ticketRepository).findAllBetweenOptionalStops(1L, 5L, pageable);
     }

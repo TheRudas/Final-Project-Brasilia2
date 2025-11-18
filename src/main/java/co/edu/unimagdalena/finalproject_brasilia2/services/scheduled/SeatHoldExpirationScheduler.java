@@ -25,14 +25,12 @@ public class SeatHoldExpirationScheduler {
     public void expireHolds() {
         OffsetDateTime now = OffsetDateTime.now();
 
-        // Buscar todos los expiraos
-        List<SeatHold> expiredHolds = seatHoldRepository.findAll().stream()
-                .filter(hold -> hold.getStatus() == SeatHoldStatus.HOLD)
-                .filter(hold -> hold.getExpiresAt().isBefore(now)).toList();
+        // Buscar todos los expirados
+        List<SeatHold> expiredHolds = seatHoldRepository.findByStatusAndExpiresAtBefore(SeatHoldStatus.HOLD, now);
 
         if (!expiredHolds.isEmpty()) {
-            expiredHolds.forEach(hold -> {hold.setStatus(SeatHoldStatus.EXPIRED);});
-
+            expiredHolds.forEach(hold -> hold.setStatus(SeatHoldStatus.EXPIRED));
+            log.info("Expired {} seat holds", expiredHolds.size());
             seatHoldRepository.saveAll(expiredHolds);
         }
     }

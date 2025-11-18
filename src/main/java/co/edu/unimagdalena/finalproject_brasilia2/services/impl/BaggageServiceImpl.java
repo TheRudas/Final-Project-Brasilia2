@@ -1,11 +1,15 @@
 package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 
-import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.*;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.BaggageCreateRequest;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.BaggageResponse;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.BaggageUpdateRequest;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Baggage;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.BaggageRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TicketRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.BaggageService;
+import co.edu.unimagdalena.finalproject_brasilia2.services.ConfigService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.BaggageMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +27,7 @@ public class BaggageServiceImpl implements BaggageService {
     private final BaggageRepository baggageRepository;
     private final TicketRepository ticketRepository;
     private final BaggageMapper mapper;
+    private final ConfigService configService;
 
     @Override
     @Transactional
@@ -32,10 +37,21 @@ public class BaggageServiceImpl implements BaggageService {
         );
         //verify uniqueness of tagCode
         if(baggageRepository.findByTagCode(request.tagCode()).isPresent()) {
-            throw new IllegalStateException("Baggage tag %s already exists".formatted(request.tagCode())); //'state' cause is valid but already registered in Kevin DB
+            throw new IllegalStateException("Baggage tag %s already exists".formatted(request.tagCode())); //'state' cause is valid but already registered in KDB
         }
+
+        //verify if the ticket was sold really
+        if(ticket.getStatus() != TicketStatus.SOLD) {
+            throw new IllegalStateException("Cannot add baggage to a NON-SOLD ticket with id: " + request.ticketId());
+        }
+
         var baggage = mapper.toEntity(request);
         baggage.setTicket(ticket);
+
+        // Calculate by weight automatically (NO to Request, to baggage)
+        var calculatedFee = calculateFee(request.weightKg());
+        baggage.setFee(calculatedFee);
+
         return mapper.toResponse(baggageRepository.save(baggage));
     }
 
@@ -115,5 +131,27 @@ public class BaggageServiceImpl implements BaggageService {
             throw new NotFoundException("No baggage found for ticket with id: " + ticketId);
         }
         return baggage.stream().map(mapper::toResponse).toList();
+    }
+
+    @Override
+    public Long countByTripId(Long tripId) {
+        return baggageRepository.countByTripId(tripId);
+    }
+
+    @Override
+    public BigDecimal sumWeightByTripId(Long tripId) {
+        return baggageRepository.sumWeightByTripId(tripId);
+    }
+
+    //OYE GELDA ESCUCHATE ESTO
+    // First "max" kg free, then "configurable fee" barras per kile
+    private BigDecimal calculateFee(BigDecimal weightKg) {
+        BigDecimal MAX_FREE_WEIGHT_KG = configService.getValue("BAGGAGE_MAX_FREE_WEIGHT_KG");
+        BigDecimal FEE_PER_EXCESS_KG = configService.getValue("BAGGAGE_FEE_PER_EXCESS_KG");
+        if (weightKg.compareTo(MAX_FREE_WEIGHT_KG) > 0) {
+            BigDecimal excessWeight = weightKg.subtract(MAX_FREE_WEIGHT_KG);
+            return excessWeight.multiply(FEE_PER_EXCESS_KG);
+        }
+        return BigDecimal.ZERO;
     }
 }

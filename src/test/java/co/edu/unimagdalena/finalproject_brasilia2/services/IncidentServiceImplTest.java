@@ -367,8 +367,8 @@ class IncidentServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).entityType()).isEqualTo(IncidentEntityType.TRIP);
-        assertThat(result.get(0).entityId()).isEqualTo(100L);
+        assertThat(result.getFirst().entityType()).isEqualTo(IncidentEntityType.TRIP);
+        assertThat(result.getFirst().entityId()).isEqualTo(100L);
 
         verify(incidentRepository).findByEntityTypeAndEntityId(IncidentEntityType.TRIP, 100L);
     }

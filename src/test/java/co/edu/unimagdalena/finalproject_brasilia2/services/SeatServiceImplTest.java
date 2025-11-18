@@ -284,7 +284,7 @@ class SeatServiceImplTest {
         assertThat(response.seatType()).isEqualTo(SeatType.PREFERENTIAL);
 
         verify(seatRepository).findById(10L);
-        verify(seatRepository, never()).existsByBusIdAndNumber(any(), any()); // No valida porque es el mismo número
+        verify(seatRepository, never()).existsByBusIdAndNumber(any(), any()); // No valída porque es el mismo número
         verify(seatRepository).save(any(Seat.class));
     }
 
@@ -556,7 +556,7 @@ class SeatServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).seatType()).isEqualTo(SeatType.PREFERENTIAL);
+        assertThat(result.getFirst().seatType()).isEqualTo(SeatType.PREFERENTIAL);
 
         verify(seatRepository).findByBusIdAndSeatType(1L, SeatType.PREFERENTIAL);
     }
