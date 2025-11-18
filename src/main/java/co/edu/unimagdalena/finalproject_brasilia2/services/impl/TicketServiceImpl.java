@@ -6,6 +6,7 @@ import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PaymentM
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
+import co.edu.unimagdalena.finalproject_brasilia2.services.ConfigService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.TicketService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TicketMapper;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +33,7 @@ public class TicketServiceImpl implements TicketService {
     private final StopRepository stopRepository;
     private final SeatRepository seatRepository;
     private final TicketMapper mapper;
+    private final ConfigService configService;
 
     @Override
     @Transactional
@@ -173,6 +178,30 @@ public class TicketServiceImpl implements TicketService {
         if (ticket.getStatus() != TicketStatus.SOLD) {
             throw new IllegalStateException("Only SOLD tickets can be cancelled");
         }
+
+        //add business rules for cancellation
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime departureTime = ticket.getTrip().getDepartureTime();
+        var hourDiff = Duration.between(now, departureTime).toHours();
+        BigDecimal refundPercent;
+        
+        if (hourDiff >= 24) {
+            refundPercent = configService.getValue("REFUND_24H_PERCENT");
+        }
+        else if (hourDiff >= 12) {
+            refundPercent = configService.getValue("REFUND_12H_PERCENT");
+        }
+        else if (hourDiff >= 2) {
+            refundPercent = configService.getValue("REFUND_2H_PERCENT");
+        }
+        else {
+            throw new IllegalStateException("Cancellations must be made at least 2 hours before departure");
+        }
+
+        //Calculate and set refund amount
+        // (BigDecimal es tan peye (o tan bueno) que no permite operaciones directas en redondeo. Tienes que configurarlo con el HALF_UP este: si el tercer decimal es ≥ 5, redondea hacia arriba)
+        BigDecimal refundAmount = ticket.getPrice().multiply(refundPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        ticket.setRefundAmount(refundAmount);
 
         ticket.setStatus(TicketStatus.CANCELLED);
         return mapper.toResponse(ticketRepository.save(ticket));
