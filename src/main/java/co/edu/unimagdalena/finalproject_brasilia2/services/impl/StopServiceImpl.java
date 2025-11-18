@@ -39,7 +39,7 @@ public class StopServiceImpl implements StopService {
                 throw new IllegalArgumentException("First stop must have order 1");
             }
         } else {
-            int lastOrder = stops.get(0).getOrder();
+            var lastOrder = stops.get(0).getOrder();
             if (request.order() != lastOrder + 1) {
                 throw new IllegalArgumentException("Order must be consecutive. Expected: %d, Got: %d"
                     .formatted(lastOrder + 1, request.order()));

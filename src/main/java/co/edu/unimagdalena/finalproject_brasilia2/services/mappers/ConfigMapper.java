@@ -4,10 +4,7 @@ import co.edu.unimagdalena.finalproject_brasilia2.api.dto.ConfigDtos.ConfigCreat
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.ConfigDtos.ConfigResponse;
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.ConfigDtos.ConfigUpdateRequest;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Config;
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")
 public interface ConfigMapper {

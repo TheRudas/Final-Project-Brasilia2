@@ -72,36 +72,64 @@ public class RouteServiceImpl implements RouteService {
 
     @Override
     public List<RouteResponse> listByOrigin(String origin) {
-        return routeRepository.findByOrigin(origin).stream().map(mapper::toResponse).toList();
+        var routes = routeRepository.findByOrigin(origin);
+        if (routes.isEmpty()) {
+            throw new NotFoundException("Route from origin %s not found".formatted(origin));
+        }
+        return routes.stream().map(mapper::toResponse).toList();
     }
 
     @Override
     public List<RouteResponse> listByDestination(String destination) {
-        return routeRepository.findByDestination(destination).stream().map(mapper::toResponse).toList();
+        var routes = routeRepository.findByDestination(destination);
+        if (routes.isEmpty()) {
+            throw new NotFoundException("Route to destination %s not found".formatted(destination));
+        }
+        return routes.stream().map(mapper::toResponse).toList();
     }
 
     @Override
     public List<RouteResponse> listByOriginAndDestination(String origin, String destination) {
-        return routeRepository.findByOriginAndDestination(origin, destination).stream().map(mapper::toResponse).toList();
+        var routes = routeRepository.findByOriginAndDestination(origin, destination);
+        if (routes.isEmpty()) {
+            throw new NotFoundException("Route from %s to %s not found".formatted(origin, destination));
+        }
+        return routes.stream().map(mapper::toResponse).toList();
     }
 
     @Override
     public List<RouteResponse> listByDurationMinBetween(Integer min, Integer max) {
-        return routeRepository.findByDurationMinBetween(min, max).stream().map(mapper::toResponse).toList();
+        var routes = routeRepository.findByDurationMinBetween(min, max);
+        if (routes.isEmpty()) {
+            throw new NotFoundException("No routes found with duration between %d and %d minutes".formatted(min, max));
+        }
+        return routes.stream().map(mapper::toResponse).toList();
     }
 
     @Override
     public Page<RouteResponse> listByDurationMinLessThanEqual(Integer min, Pageable pageable) {
-        return routeRepository.findByDurationMinLessThanEqual(min, pageable).map(mapper::toResponse);
+        var page = routeRepository.findByDurationMinLessThanEqual(min, pageable);
+        if (page.isEmpty()) {
+            throw new NotFoundException("No routes found with duration <= %d minutes".formatted(min));
+        }
+        return page.map(mapper::toResponse);
     }
 
     @Override
     public Page<RouteResponse> listByDistanceKmLessThanEqual(BigDecimal distanceKm, Pageable pageable) {
-        return routeRepository.findByDistanceKmLessThanEqual(distanceKm, pageable).map(mapper::toResponse);
+        var page = routeRepository.findByDistanceKmLessThanEqual(distanceKm, pageable);
+        if (page.isEmpty()) {
+            throw new NotFoundException("No routes found with distance <= %s km".formatted(distanceKm));
+        }
+        return page.map(mapper::toResponse);
     }
 
     @Override
     public Page<RouteResponse> listByDistanceKmGreaterThanEqual(BigDecimal distanceKm, Pageable pageable) {
-        return routeRepository.findByDistanceKmGreaterThanEqual(distanceKm, pageable).map(mapper::toResponse);
+        var page = routeRepository.findByDistanceKmGreaterThanEqual(distanceKm, pageable);
+        if (page.isEmpty()) {
+            throw new NotFoundException("No routes found with distance >= %s km".formatted(distanceKm));
+        }
+        return page.map(mapper::toResponse);
     }
 }

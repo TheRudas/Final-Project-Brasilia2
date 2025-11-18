@@ -83,14 +83,18 @@ public class SeatServiceImpl implements SeatService {
     @Override
     public List<SeatResponse> listByBusId(Long busId) {
         List<Seat> seats = seatRepository.findByBusId(busId);
-        //Bus can be empty
+        if (seats.isEmpty()) {
+            throw new NotFoundException("bus %d has no seats".formatted(busId));
+        }
         return seats.stream().map(mapper::toResponse).toList();
     }
 
     @Override
     public List<SeatResponse> listByBusIdAndSeatType(Long busId, SeatType seatType) {
         List<Seat> seats = seatRepository.findByBusIdAndSeatType(busId, seatType);
-        //Bus can be empty
+        if (seats.isEmpty()) {
+            throw new NotFoundException("bus %d has no %s seats".formatted(busId, seatType));
+        }
         return seats.stream().map(mapper::toResponse).toList();
     }
 
@@ -104,7 +108,9 @@ public class SeatServiceImpl implements SeatService {
     @Override
     public List<SeatResponse> listByBusIdOrderByNumberAsc(Long busId) {
         List<Seat> seats = seatRepository.findByBusIdOrderByNumberAsc(busId);
-        //Bus can be empty
+        if (seats.isEmpty()) {
+            throw new NotFoundException("bus %d has no seats".formatted(busId));
+        }
         return seats.stream().map(mapper::toResponse).toList();
     }
 

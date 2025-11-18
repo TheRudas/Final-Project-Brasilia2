@@ -54,4 +54,7 @@ public class Ticket {
 
     @Column(name = "qrCode", nullable = false, unique = true)
     private String qrCode;
+
+    @Column(name = "no_show_fee", scale = 2, precision = 10)
+    private BigDecimal noShowFee;
 }

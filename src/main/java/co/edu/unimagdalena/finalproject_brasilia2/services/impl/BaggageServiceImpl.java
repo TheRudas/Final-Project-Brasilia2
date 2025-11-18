@@ -1,10 +1,11 @@
 package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 
-import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.*;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.BaggageCreateRequest;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.BaggageResponse;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BaggageDtos.BaggageUpdateRequest;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Baggage;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.BaggageRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.ConfigRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TicketRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.BaggageService;
@@ -130,6 +131,16 @@ public class BaggageServiceImpl implements BaggageService {
             throw new NotFoundException("No baggage found for ticket with id: " + ticketId);
         }
         return baggage.stream().map(mapper::toResponse).toList();
+    }
+
+    @Override
+    public Long countByTripId(Long tripId) {
+        return baggageRepository.countByTripId(tripId);
+    }
+
+    @Override
+    public BigDecimal sumWeightByTripId(Long tripId) {
+        return baggageRepository.sumWeightByTripId(tripId);
     }
 
     //OYE GELDA ESCUCHATE ESTO

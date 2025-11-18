@@ -42,6 +42,9 @@ class SeatHoldServiceImplTest {
     @Mock
     private TicketRepository ticketRepository;
 
+    @Mock
+    private SeatRepository seatRepository;
+
     @Spy
     private SeatHoldMapper mapper = Mappers.getMapper(SeatHoldMapper.class);
 
@@ -106,10 +109,18 @@ class SeatHoldServiceImplTest {
         var trip = createTestTrip(route, bus);
         var user = createTestUser();
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var request = new SeatHoldCreateRequest(1L, "A1", 1L);
 
         when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
         when(ticketRepository.findByTripAndSeatNumber(trip, "A1")).thenReturn(Optional.empty());
         when(seatHoldRepository.findByTripId(1L)).thenReturn(List.of());
         when(seatHoldRepository.save(any(SeatHold.class))).thenAnswer(inv -> {
@@ -131,6 +142,7 @@ class SeatHoldServiceImplTest {
 
         verify(tripRepository).findById(1L);
         verify(userRepository).findById(1L);
+        verify(seatRepository).findByBusIdAndNumber(bus.getId(), "A1");
         verify(ticketRepository).findByTripAndSeatNumber(trip, "A1");
         verify(seatHoldRepository).findByTripId(1L);
         verify(seatHoldRepository).save(any(SeatHold.class));
@@ -173,12 +185,44 @@ class SeatHoldServiceImplTest {
     }
 
     @Test
+    void shouldThrowNotFoundExceptionWhenSeatNotExistsInBus() {
+        // Given
+        var route = createTestRoute();
+        var bus = createTestBus();
+        var trip = createTestTrip(route, bus);
+        var user = createTestUser();
+
+        var request = new SeatHoldCreateRequest(1L, "Z99", 1L);
+
+        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "Z99")).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Seat Z99 not found in bus");
+
+        verify(tripRepository).findById(1L);
+        verify(userRepository).findById(1L);
+        verify(seatRepository).findByBusIdAndNumber(bus.getId(), "Z99");
+        verify(ticketRepository, never()).findByTripAndSeatNumber(any(), any());
+    }
+
+    @Test
     void shouldThrowIllegalStateExceptionWhenSeatAlreadySold() {
         // Given
         var route = createTestRoute();
         var bus = createTestBus();
         var trip = createTestTrip(route, bus);
         var user = createTestUser();
+
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
 
         var existingTicket = Ticket.builder()
                 .id(1L)
@@ -190,6 +234,7 @@ class SeatHoldServiceImplTest {
 
         when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
         when(ticketRepository.findByTripAndSeatNumber(trip, "A1"))
                 .thenReturn(Optional.of(existingTicket));
 
@@ -209,6 +254,13 @@ class SeatHoldServiceImplTest {
         var trip = createTestTrip(route, bus);
         var user = createTestUser();
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var existingHold = SeatHold.builder()
                 .id(5L)
                 .trip(trip)
@@ -222,6 +274,7 @@ class SeatHoldServiceImplTest {
 
         when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
         when(ticketRepository.findByTripAndSeatNumber(trip, "A1")).thenReturn(Optional.empty());
         when(seatHoldRepository.findByTripId(1L)).thenReturn(List.of(existingHold));
 
@@ -241,6 +294,13 @@ class SeatHoldServiceImplTest {
         var trip = createTestTrip(route, bus);
         var user = createTestUser();
 
+        var seat = Seat.builder()
+                .id(1L)
+                .bus(bus)
+                .number("A1")
+                .seatType(SeatType.STANDARD)
+                .build();
+
         var expiredHold = SeatHold.builder()
                 .id(5L)
                 .trip(trip)
@@ -254,6 +314,7 @@ class SeatHoldServiceImplTest {
 
         when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
         when(ticketRepository.findByTripAndSeatNumber(trip, "A1")).thenReturn(Optional.empty());
         when(seatHoldRepository.findByTripId(1L)).thenReturn(List.of(expiredHold));
         when(seatHoldRepository.save(any(SeatHold.class))).thenAnswer(inv -> {
@@ -471,32 +532,29 @@ class SeatHoldServiceImplTest {
     @Test
     void shouldExpireAllExpiredHolds() {
         // Given
+        OffsetDateTime now = OffsetDateTime.now();
+
         var hold1 = SeatHold.builder()
                 .id(10L)
                 .status(SeatHoldStatus.HOLD)
-                .expiresAt(OffsetDateTime.now().minusMinutes(5))
+                .expiresAt(now.minusMinutes(5))
                 .build();
 
         var hold2 = SeatHold.builder()
                 .id(11L)
                 .status(SeatHoldStatus.HOLD)
-                .expiresAt(OffsetDateTime.now().minusMinutes(3))
+                .expiresAt(now.minusMinutes(3))
                 .build();
 
-        var hold3 = SeatHold.builder()
-                .id(12L)
-                .status(SeatHoldStatus.HOLD)
-                .expiresAt(OffsetDateTime.now().plusMinutes(5)) // Still valid
-                .build();
-
-        when(seatHoldRepository.findAll()).thenReturn(List.of(hold1, hold2, hold3));
+        when(seatHoldRepository.findByStatusAndExpiresAtBefore(eq(SeatHoldStatus.HOLD), any(OffsetDateTime.class)))
+                .thenReturn(List.of(hold1, hold2));
         when(seatHoldRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         // When
         service.expireAll();
 
         // Then
-        verify(seatHoldRepository).findAll();
+        verify(seatHoldRepository).findByStatusAndExpiresAtBefore(eq(SeatHoldStatus.HOLD), any(OffsetDateTime.class));
         verify(seatHoldRepository).saveAll(argThat(
                 (List<SeatHold> list) ->
                         list != null &&
@@ -508,38 +566,28 @@ class SeatHoldServiceImplTest {
     @Test
     void shouldNotSaveWhenNoExpiredHolds() {
         // Given
-        var hold1 = SeatHold.builder()
-                .id(10L)
-                .status(SeatHoldStatus.HOLD)
-                .expiresAt(OffsetDateTime.now().plusMinutes(10))
-                .build();
-
-        when(seatHoldRepository.findAll()).thenReturn(List.of(hold1));
+        when(seatHoldRepository.findByStatusAndExpiresAtBefore(eq(SeatHoldStatus.HOLD), any(OffsetDateTime.class)))
+                .thenReturn(List.of());
 
         // When
         service.expireAll();
 
         // Then
-        verify(seatHoldRepository).findAll();
+        verify(seatHoldRepository).findByStatusAndExpiresAtBefore(eq(SeatHoldStatus.HOLD), any(OffsetDateTime.class));
         verify(seatHoldRepository, never()).saveAll(any());
     }
 
     @Test
     void shouldNotExpireAlreadyExpiredHolds() {
-        // Given
-        var hold1 = SeatHold.builder()
-                .id(10L)
-                .status(SeatHoldStatus.EXPIRED)
-                .expiresAt(OffsetDateTime.now().minusMinutes(10))
-                .build();
-
-        when(seatHoldRepository.findAll()).thenReturn(List.of(hold1));
+        // Given - La query solo devuelve HOLD con expiresAt anterior, nunca EXPIRED
+        when(seatHoldRepository.findByStatusAndExpiresAtBefore(eq(SeatHoldStatus.HOLD), any(OffsetDateTime.class)))
+                .thenReturn(List.of());
 
         // When
         service.expireAll();
 
         // Then
-        verify(seatHoldRepository).findAll();
+        verify(seatHoldRepository).findByStatusAndExpiresAtBefore(eq(SeatHoldStatus.HOLD), any(OffsetDateTime.class));
         verify(seatHoldRepository, never()).saveAll(any());
     }
 }
