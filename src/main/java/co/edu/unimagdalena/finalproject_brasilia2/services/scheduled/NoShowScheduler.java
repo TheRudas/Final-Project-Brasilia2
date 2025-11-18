@@ -25,6 +25,9 @@ public class NoShowScheduler {
     /* Este es un esclavo que busca tickets vendidos cuyo viaje va a salir en t-5 y los marca NO_SHOW automáticamente. Gracias esclavo
     Los logs vienen en Simple Logging Facade 4 java, dice que sirven para auditorias y que es bueno dejarlos en los schedulers, se generan cada vez que
     se marca el ticket como no show y obtener detalles.
+
+    VENTA RÁPIDA: Al marcar NO_SHOW, la silla se libera automaticamente porque existsOverlappingTicket() solo cuenta status = SOLD.
+    Esto permite vender la silla a último momento si alguien llega a la terminal.
     */
 
     @Scheduled(fixedRate = 60000) // 60k ms = 1 min
@@ -37,10 +40,11 @@ public class NoShowScheduler {
             BigDecimal noShowFee = configService.getValue("NO_SHOW_FEE");
 
             noShows.forEach(ticket -> {
-                log.info("Marking ticket {} as NO_SHOW for trip {} (departure: {}). Fee: {}",
+                log.info("Marking ticket {} as NO_SHOW for trip {} (departure: {}). Seat {} now available for quick sale. Fee: {}",
                         ticket.getId(),
                         ticket.getTrip().getId(),
                         ticket.getTrip().getDepartureTime(),
+                        ticket.getSeatNumber(),
                         noShowFee);
 
                 ticket.setStatus(TicketStatus.NO_SHOW);
@@ -48,7 +52,7 @@ public class NoShowScheduler {
             });
 
             ticketRepository.saveAll(noShows);
-            log.info("Marked {} tickets as NO_SHOW with fee {}", noShows.size(), noShowFee);
+            log.info("Marked {} tickets as NO_SHOW with fee {}. Seats released for quick sale.", noShows.size(), noShowFee);
         }
     }
 }

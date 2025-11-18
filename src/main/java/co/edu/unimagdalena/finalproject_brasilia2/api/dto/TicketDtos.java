@@ -20,6 +20,6 @@ public class TicketDtos {
 
     public record TicketResponse(Long id, Long tripId, Long passengerId, String passengerName, String busPlate, OffsetDateTime departureAt,
                                  String seatNumber, Long fromStopId, Long toStopId, BigDecimal price, PaymentMethod paymentMethod,
-                                 TicketStatus status, String qrCode, BigDecimal noShowFee) implements Serializable {}
+                                 TicketStatus status, String qrCode, BigDecimal noShowFee, BigDecimal refundAmount) implements Serializable {}
 
 }

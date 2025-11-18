@@ -57,4 +57,7 @@ public class Ticket {
 
     @Column(name = "no_show_fee", scale = 2, precision = 10)
     private BigDecimal noShowFee;
+
+    @Column(name = "refund_amount", scale = 2, precision = 10)
+    private BigDecimal refundAmount;
 }
