@@ -18,7 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -35,10 +38,6 @@ public class BaggageServiceImpl implements BaggageService {
         var ticket = ticketRepository.findById(request.ticketId()).orElseThrow(
                 () -> new NotFoundException("Ticket not found with id: " + request.ticketId())
         );
-        //verify uniqueness of tagCode
-        if(baggageRepository.findByTagCode(request.tagCode()).isPresent()) {
-            throw new IllegalStateException("Baggage tag %s already exists".formatted(request.tagCode())); //'state' cause is valid but already registered in KDB
-        }
 
         //verify if the ticket was sold really
         if(ticket.getStatus() != TicketStatus.SOLD) {
@@ -48,7 +47,10 @@ public class BaggageServiceImpl implements BaggageService {
         var baggage = mapper.toEntity(request);
         baggage.setTicket(ticket);
 
-        // Calculate by weight automatically (NO to Request, to baggage)
+        // Auto-generate unique tagCode
+        baggage.setTagCode(generateTagCode());
+
+        // Calculate fee by weight automatically
         var calculatedFee = calculateFee(request.weightKg());
         baggage.setFee(calculatedFee);
 
@@ -153,5 +155,13 @@ public class BaggageServiceImpl implements BaggageService {
             return excessWeight.multiply(FEE_PER_EXCESS_KG);
         }
         return BigDecimal.ZERO;
+    }
+
+    private String generateTagCode() {
+        // Format: BAG-YYYYMMDD-XXXX
+        String prefix = "BAG-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String suffix = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        return prefix + "-" + suffix;
+        // Example: BAG-20251117-A3F9
     }
 }
