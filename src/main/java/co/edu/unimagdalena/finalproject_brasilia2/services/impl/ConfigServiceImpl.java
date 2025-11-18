@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -50,6 +51,12 @@ public class ConfigServiceImpl implements ConfigService {
         var config = configRepository.findById(key)
                 .orElseThrow(() -> new NotFoundException("Config with key %s not found".formatted(key)));
         configRepository.delete(config);
+    }
+
+    @Override
+    public BigDecimal getValue(String key) {
+        var value = configRepository.findById(key).orElseThrow(() -> new NotFoundException("Config with key %s not found".formatted(key))).getValue();
+        return new BigDecimal(value);
     }
 
     @Override
