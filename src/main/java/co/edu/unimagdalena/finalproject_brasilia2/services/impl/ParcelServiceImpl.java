@@ -5,11 +5,13 @@ import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Parcel;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.ParcelStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.ParcelRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.StopRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.ParcelService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.ParcelMapper;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,20 +22,19 @@ import java.util.List;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class ParcelServiceImpl implements ParcelService {
 
     private final ParcelRepository repository;
     private final StopRepository stopRepository;
+    private final TripRepository tripRepository;
     private final ParcelMapper mapper;
 
-    // ========================= CREATE =========================
     @Override
     @Transactional
     public ParcelDtos.ParcelResponse create(ParcelDtos.ParcelCreateRequest request) {
-
         Parcel parcel = mapper.toEntity(request);
 
-        // Asignar stops
         var fromStop = stopRepository.findById(request.fromStopId())
                 .orElseThrow(() -> new NotFoundException("Origin stop not found"));
         var toStop = stopRepository.findById(request.toStopId())
@@ -41,33 +42,22 @@ public class ParcelServiceImpl implements ParcelService {
 
         parcel.setFromStop(fromStop);
         parcel.setToStop(toStop);
-
-        // Lógica de negocio: precio inicial base
-        parcel.setPrice(BigDecimal.valueOf(5.00)); // ejemplo
-
-        // Estado inicial del paquete
+        parcel.setPrice(BigDecimal.valueOf(5.00));
         parcel.setStatus(ParcelStatus.CREATED);
-
-        // Generar OTP de 8 dígitos
         parcel.setDeliveryOtp(generateOtp());
 
         Parcel saved = repository.save(parcel);
-
         return mapper.toResponse(saved);
     }
 
-    // ========================= UPDATE =========================
     @Override
     @Transactional
     public ParcelDtos.ParcelResponse update(Long id, ParcelDtos.ParcelUpdateRequest request) {
-
         Parcel parcel = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(id)));
 
-        // Patch automático
         mapper.patch(parcel, request);
 
-        // Actualizar stops si vienen en el request
         if (request.fromStopId() != null) {
             var fs = stopRepository.findById(request.fromStopId())
                     .orElseThrow(() -> new NotFoundException("Origin stop not found"));
@@ -81,11 +71,9 @@ public class ParcelServiceImpl implements ParcelService {
         }
 
         Parcel updated = repository.save(parcel);
-
         return mapper.toResponse(updated);
     }
 
-    // ========================= GET =========================
     @Override
     public ParcelDtos.ParcelResponse get(Long id) {
         return repository.findById(id)
@@ -93,17 +81,14 @@ public class ParcelServiceImpl implements ParcelService {
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(id)));
     }
 
-    // ========================= DELETE =========================
     @Override
     @Transactional
     public void delete(Long id) {
         Parcel parcel = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(id)));
-
         repository.delete(parcel);
     }
 
-    // ========================= FILTERS =========================
     @Override
     public List<ParcelDtos.ParcelResponse> getBySenderName(String senderName) {
         return mapper.toResponseList(repository.findBySenderName(senderName));
@@ -134,10 +119,143 @@ public class ParcelServiceImpl implements ParcelService {
         return mapper.toResponseList(repository.findByToStopId(stopId));
     }
 
-    // ========================= UTILS =========================
+    @Override
+    public ParcelDtos.ParcelResponse getByCode(String code) {
+        return repository.findByCode(code)
+                .map(mapper::toResponse)
+                .orElseThrow(() -> new NotFoundException("Parcel with code %s not found".formatted(code)));
+    }
+
+    @Override
+    public List<ParcelDtos.ParcelResponse> getByStatus(ParcelStatus status) {
+        List<Parcel> parcels = repository.findByStatus(status);
+        if (parcels.isEmpty()) {
+            throw new NotFoundException("No parcels found with status: " + status);
+        }
+        return mapper.toResponseList(parcels);
+    }
+
+    @Override
+    @Transactional
+    public ParcelDtos.ParcelResponse deliverParcel(Long parcelId, String otp) {
+        Parcel parcel = repository.findById(parcelId)
+                .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(parcelId)));
+
+        if (parcel.getStatus() != ParcelStatus.IN_TRANSIT) {
+            throw new IllegalStateException(
+                    "Only parcels IN_TRANSIT can be delivered. Current status: %s"
+                            .formatted(parcel.getStatus())
+            );
+        }
+
+        if (otp == null || otp.isBlank()) {
+            throw new IllegalArgumentException("OTP cannot be empty");
+        }
+
+        if (!otp.equals(parcel.getDeliveryOtp())) {
+            log.warn("❌ Failed delivery attempt for Parcel {}: Invalid OTP", parcelId);
+            throw new IllegalArgumentException("Invalid OTP");
+        }
+
+        parcel.setStatus(ParcelStatus.DELIVERED);
+        Parcel delivered = repository.save(parcel);
+
+        log.info("✅ Parcel delivered: ID={}, Code={}, Receiver={}",
+                parcelId, parcel.getCode(), parcel.getReceiverName());
+
+        return mapper.toResponse(delivered);
+    }
+
+    @Override
+    @Transactional
+    public ParcelDtos.ParcelResponse assignToTrip(Long parcelId, Long tripId) {
+        Parcel parcel = repository.findById(parcelId)
+                .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(parcelId)));
+
+        tripRepository.findById(tripId)
+                .orElseThrow(() -> new NotFoundException("Trip %d not found".formatted(tripId)));
+
+        if (parcel.getStatus() != ParcelStatus.CREATED) {
+            throw new IllegalStateException(
+                    "Only CREATED parcels can be assigned. Current status: %s"
+                            .formatted(parcel.getStatus())
+            );
+        }
+
+        parcel.setStatus(ParcelStatus.IN_TRANSIT);
+        Parcel updated = repository.save(parcel);
+
+        log.info("📦 Parcel assigned to trip: ParcelID={}, TripID={}", parcelId, tripId);
+
+        return mapper.toResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    public ParcelDtos.ParcelResponse updateStatus(Long parcelId, ParcelStatus newStatus) {
+        Parcel parcel = repository.findById(parcelId)
+                .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(parcelId)));
+
+        ParcelStatus oldStatus = parcel.getStatus();
+        validateStatusTransition(oldStatus, newStatus);
+
+        parcel.setStatus(newStatus);
+        Parcel updated = repository.save(parcel);
+
+        log.info("Parcel status updated: ID={}, {} -> {}", parcelId, oldStatus, newStatus);
+
+        return mapper.toResponse(updated);
+    }
+
+    @Override
+    public List<ParcelDtos.ParcelResponse> listParcelsForDelivery(Long stopId) {
+        List<Parcel> parcels = repository.findByToStopIdAndStatus(stopId, ParcelStatus.IN_TRANSIT);
+
+        if (parcels.isEmpty()) {
+            log.info("No parcels pending delivery at stop {}", stopId);
+            return List.of();
+        }
+
+        log.info("Found {} parcels for delivery at stop {}", parcels.size(), stopId);
+        return mapper.toResponseList(parcels);
+    }
+
+    private void validateStatusTransition(ParcelStatus from, ParcelStatus to) {
+        if (from == to) {
+            throw new IllegalStateException("Parcel is already in status " + to);
+        }
+
+        switch (from) {
+            case CREATED:
+                if (to != ParcelStatus.IN_TRANSIT && to != ParcelStatus.FAILED) {
+                    throw new IllegalStateException(
+                            "CREATED can only go to IN_TRANSIT or FAILED"
+                    );
+                }
+                break;
+
+            case IN_TRANSIT:
+                if (to != ParcelStatus.DELIVERED && to != ParcelStatus.FAILED) {
+                    throw new IllegalStateException(
+                            "IN_TRANSIT can only go to DELIVERED or FAILED"
+                    );
+                }
+                break;
+
+            case DELIVERED:
+                throw new IllegalStateException("DELIVERED is a final state");
+
+            case FAILED:
+                throw new IllegalStateException("FAILED is a final state");
+
+            default:
+                throw new IllegalStateException("Unknown status: " + from);
+        }
+    }
+
     private String generateOtp() {
         SecureRandom random = new SecureRandom();
-        int number = random.nextInt(100_000_000); // 8 dígitos
+        int number = random.nextInt(100_000_000);
         return String.format("%08d", number);
     }
 }
