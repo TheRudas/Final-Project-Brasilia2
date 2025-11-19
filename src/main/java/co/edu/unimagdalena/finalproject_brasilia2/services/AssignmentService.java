@@ -13,7 +13,7 @@ public interface AssignmentService {
 
     void delete(Long id);
 
-    //method to get assignment by name
+
     Page<AssignmentDtos.AssignmentResponse> getByTripId(Long tripId, Pageable pageable);
 
     Page<AssignmentDtos.AssignmentResponse> getByDriverId(Long DriverId, Pageable pageable);

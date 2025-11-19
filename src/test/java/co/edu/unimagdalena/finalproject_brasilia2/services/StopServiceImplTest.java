@@ -190,7 +190,7 @@ class StopServiceImplTest {
 
         var updateRequest = new StopUpdateRequest(
                 "Terminal del Sur",
-                1, // Mismo order, no deberia validar
+                1, // Mismo order, no debería validar
                 4.5709,
                 -74.2973
         );
