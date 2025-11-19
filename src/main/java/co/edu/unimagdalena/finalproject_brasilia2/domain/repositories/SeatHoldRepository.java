@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface SeatHoldRepository extends JpaRepository<SeatHold, Long> {
     List<SeatHold> findByTripId(Long tripId);
@@ -14,4 +15,5 @@ public interface SeatHoldRepository extends JpaRepository<SeatHold, Long> {
     List<SeatHold> findByStatusAndExpiresAtBefore(SeatHoldStatus status, OffsetDateTime now);
     boolean existsByUserIdAndTripId(Long userId, Long tripId);
     boolean existsSeatHoldById(Long id);
+    Optional<SeatHold> findByTripIdAndSeatNumberAndStatus(Long tripId, String seatNumber, SeatHoldStatus status);
 }
