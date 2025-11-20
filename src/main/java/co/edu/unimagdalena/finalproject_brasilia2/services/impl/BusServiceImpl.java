@@ -3,6 +3,7 @@ package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.BusDtos;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Bus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.BusRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.BusService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.BusMapper;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class BusServiceImpl implements BusService {
 
     private final BusRepository repository;
+    private final TripRepository tripRepository;
     private final BusMapper mapper;
 
     @Override
@@ -36,15 +38,16 @@ public class BusServiceImpl implements BusService {
 
         return mapper.toResponse(saved);
     }
+
+
     @Override
-    public BusDtos.BusResponse update(BusDtos.BusUpdateRequest request) {
-        // El update está basado en la plate
-        Bus existing = repository.findByPlate(request.licensePlate())
+    public BusDtos.BusResponse update(Long id, BusDtos.BusUpdateRequest request) {
+        // Gamero, burro, como buscas por placa en vez de id???
+        Bus existing = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Bus with plate %s not found".formatted(request.licensePlate())
+                        "Bus with Id %d not found".formatted(id)
                 ));
 
-        // Patch estilo MapStruct
         mapper.patch(existing, request);
 
         return mapper.toResponse(repository.save(existing));
@@ -61,10 +64,16 @@ public class BusServiceImpl implements BusService {
 
     @Override
     public void delete(Long id) {
-        Bus bus = repository.findById(id)
-                .orElseThrow(() ->
-                        new NotFoundException("Bus %d not found or already deleted".formatted(id))
-                );
+        var bus = repository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Bus %d not found or already deleted".formatted(id)));
+
+        // Validate bus has no trips assigned
+        if (tripRepository.existsByBusId(id)) {
+            throw new IllegalStateException(
+                    "Cannot delete bus " + id + " (plate: " + bus.getPlate() +
+                    ") - it has trips assigned. Delete or reassign trips first."
+            );
+        }
 
         repository.delete(bus);
     }

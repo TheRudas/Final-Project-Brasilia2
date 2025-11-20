@@ -4,7 +4,7 @@ import co.edu.unimagdalena.finalproject_brasilia2.api.dto.FareRuleDtos;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.FareRule;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Route;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Trip;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PassengerType;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.FareRuleRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.RouteRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.StopRepository;
@@ -17,14 +17,12 @@ import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.FareRuleMappe
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -143,176 +141,91 @@ public class FareRuleServiceImpl implements FareRuleService {
     }
 
 
-    // ========================= CÁLCULO DE PRECIOS =========================
 
     @Override
-    public BigDecimal calculateFare(Long routeId, Long fromStopId, Long toStopId) {
-        // Validar que las paradas existan
-        Stop fromStop = stopRepository.findById(fromStopId)
+    public BigDecimal calculateTicketPrice(Long tripId, Long fromStopId, Long toStopId, PassengerType passengerType) {
+        // 1. Validar trip y obtener stops
+        var trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new NotFoundException("Trip %d not found".formatted(tripId)));
+
+        var fromStop = stopRepository.findById(fromStopId)
                 .orElseThrow(() -> new NotFoundException("FromStop %d not found".formatted(fromStopId)));
 
-        Stop toStop = stopRepository.findById(toStopId)
+        var toStop = stopRepository.findById(toStopId)
                 .orElseThrow(() -> new NotFoundException("ToStop %d not found".formatted(toStopId)));
 
-        // Validar que pertenezcan a la ruta
-        if (!fromStop.getRoute().getId().equals(routeId)) {
-            throw new IllegalArgumentException("FromStop does not belong to route %d".formatted(routeId));
+        // Validar que stops pertenezcan a la ruta del trip
+        if (!fromStop.getRoute().getId().equals(trip.getRoute().getId())) {
+            throw new IllegalArgumentException("FromStop doesn't belong to trip's route");
         }
-
-        if (!toStop.getRoute().getId().equals(routeId)) {
-            throw new IllegalArgumentException("ToStop does not belong to route %d".formatted(routeId));
+        if (!toStop.getRoute().getId().equals(trip.getRoute().getId())) {
+            throw new IllegalArgumentException("ToStop doesn't belong to trip's route");
         }
-
-        // Validar orden
         if (fromStop.getOrder() >= toStop.getOrder()) {
             throw new IllegalArgumentException("FromStop order must be less than ToStop order");
         }
 
-        // ✅ CORRECCIÓN: Obtener todas las reglas usando Pageable.unpaged()
-        Page<FareRule> rulesPage = repository.findByRouteId(routeId, Pageable.unpaged());
-        List<FareRule> rules = rulesPage.getContent();
+        // 2. Buscar FareRule exacta o calcular proporcional
+        var rulesPage = repository.findByRouteId(trip.getRoute().getId(), Pageable.unpaged());
+        var rules = rulesPage.getContent();
 
-        FareRule exactRule = rules.stream()
+        var exactRule = rules.stream()
                 .filter(rule -> rule.getFromStop().getId().equals(fromStopId)
                         && rule.getToStop().getId().equals(toStopId))
                 .findFirst()
                 .orElse(null);
 
+        BigDecimal basePrice;
+        boolean hasDynamicPricing = false;
+
         if (exactRule != null) {
-            return exactRule.getBasePrice();
+            basePrice = exactRule.getBasePrice();
+            hasDynamicPricing = exactRule.isDynamicPricing();
+        } else {
+            // Calcular proporcional
+            var route = trip.getRoute();
+            var stops = stopRepository.findByRouteIdOrderByOrderAsc(route.getId());
+            var stopsDistance = toStop.getOrder() - fromStop.getOrder();
+            var pricePerKm = configService.getValue("FARE_PRICE_PER_KM");
+            var segmentDistance = route.getDistanceKm().divide(
+                    BigDecimal.valueOf(stops.size() - 1), 2, RoundingMode.HALF_UP);
+            basePrice = segmentDistance.multiply(BigDecimal.valueOf(stopsDistance))
+                    .multiply(pricePerKm).setScale(2, RoundingMode.HALF_UP);
         }
 
-        // Si no hay regla exacta, calcular proporcionalmente
-        return calculateProportionalFare(routeId, fromStop, toStop);
-    }
+        // 3. Aplicar pricing dinámico si está habilitado
+        if (hasDynamicPricing) {
+            var totalSeats = trip.getBus().getCapacity();
+            var occupiedSeats = tripService.getOccupiedSeatsCount(tripId);
+            var occupancyRate = BigDecimal.valueOf(occupiedSeats)
+                    .divide(BigDecimal.valueOf(totalSeats), 4, RoundingMode.HALF_UP);
 
-    /**
-     * Calcula la tarifa proporcionalmente basándose en la distancia
-     */
-    private BigDecimal calculateProportionalFare(Long routeId, Stop fromStop, Stop toStop) {
-        Route route = routeRepository.findById(routeId)
-                .orElseThrow(() -> new NotFoundException("Route %d not found".formatted(routeId)));
-
-        // Obtener todas las paradas de la ruta ordenadas
-        List<Stop> stops = stopRepository.findByRouteIdOrderByOrderAsc(routeId);
-
-        if (stops.size() < 2) {
-            throw new IllegalStateException("Route must have at least 2 stops");
+            BigDecimal multiplier = BigDecimal.ONE;
+            if (occupancyRate.compareTo(BigDecimal.valueOf(0.90)) >= 0) {
+                multiplier = BigDecimal.valueOf(1.30); // +30%
+            } else if (occupancyRate.compareTo(BigDecimal.valueOf(0.75)) >= 0) {
+                multiplier = BigDecimal.valueOf(1.20); // +20%
+            } else if (occupancyRate.compareTo(BigDecimal.valueOf(0.50)) >= 0) {
+                multiplier = BigDecimal.valueOf(1.10); // +10%
+            }
+            basePrice = basePrice.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
         }
 
-        // Calcular distancia entre paradas (número de paradas intermedias)
-        int stopsDistance = toStop.getOrder() - fromStop.getOrder();
-
-        // Obtener precio base por km desde configuración
-        BigDecimal pricePerKm = configService.getValue("FARE_PRICE_PER_KM");
-
-        // Calcular distancia estimada (asumiendo distancia uniforme entre paradas)
-        BigDecimal totalDistance = route.getDistanceKm();
-        int totalStops = stops.size() - 1; // Número de segmentos
-
-        BigDecimal segmentDistance = totalDistance.divide(
-                BigDecimal.valueOf(totalStops),
-                2,
-                RoundingMode.HALF_UP
-        );
-
-        BigDecimal tripDistance = segmentDistance.multiply(BigDecimal.valueOf(stopsDistance));
-
-        // Precio = distancia * precio por km
-        return tripDistance.multiply(pricePerKm).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    @Override
-    public BigDecimal applyDiscount(BigDecimal basePrice, String discountType) {
-        if (discountType == null || discountType.isBlank()) {
-            return basePrice;
+        // 4. Aplicar descuento por tipo de pasajero
+        if (passengerType != PassengerType.ADULT) {
+            try {
+                var configKey = "DISCOUNT_" + passengerType.name() + "_PERCENT";
+                var discountPercent = configService.getValue(configKey);
+                var discountAmount = basePrice.multiply(discountPercent)
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                basePrice = basePrice.subtract(discountAmount);
+            } catch (NotFoundException e) {
+                // Si no existe config para este descuento, ignorar
+            }
         }
 
-        // Obtener porcentaje de descuento desde configuración
-        BigDecimal discountPercent;
-
-        try {
-            String configKey = "DISCOUNT_" + discountType.toUpperCase() + "_PERCENT";
-            discountPercent = configService.getValue(configKey);
-        } catch (NotFoundException e) {
-            // Si no existe configuración para este descuento, no aplicar nada
-            return basePrice;
-        }
-
-        // Calcular descuento
-        BigDecimal discountAmount = basePrice
-                .multiply(discountPercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-        BigDecimal finalPrice = basePrice.subtract(discountAmount);
-
-        // El precio nunca puede ser negativo
-        return finalPrice.max(BigDecimal.ZERO);
-    }
-
-    @Override
-    public BigDecimal calculateDynamicPrice(Long tripId, Long fromStopId, Long toStopId) {
-        Trip trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new NotFoundException("Trip %d not found".formatted(tripId)));
-
-        // Calcular precio base
-        BigDecimal basePrice = calculateFare(trip.getRoute().getId(), fromStopId, toStopId);
-
-        // ✅ CORRECCIÓN: Obtener todas las reglas usando Pageable.unpaged()
-        Page<FareRule> rulesPage = repository.findByRouteId(trip.getRoute().getId(), Pageable.unpaged());
-        List<FareRule> rules = rulesPage.getContent();
-
-        boolean hasDynamicPricing = rules.stream()
-                .anyMatch(rule -> rule.getFromStop().getId().equals(fromStopId)
-                        && rule.getToStop().getId().equals(toStopId)
-                        && rule.isDynamicPricing());
-
-        if (!hasDynamicPricing) {
-            return basePrice;
-        }
-
-        // Calcular ocupación del viaje
-        Integer totalSeats = trip.getBus().getCapacity();
-        Integer occupiedSeats = tripService.getOccupiedSeatsCount(tripId);
-
-        BigDecimal occupancyRate = BigDecimal.valueOf(occupiedSeats)
-                .divide(BigDecimal.valueOf(totalSeats), 4, RoundingMode.HALF_UP);
-
-        // Aplicar ajuste según ocupación
-        // 0-50%: Sin ajuste
-        // 50-75%: +10%
-        // 75-90%: +20%
-        // 90-100%: +30%
-
-        BigDecimal multiplier = BigDecimal.ONE;
-
-        if (occupancyRate.compareTo(BigDecimal.valueOf(0.90)) >= 0) {
-            multiplier = BigDecimal.valueOf(1.30);
-        } else if (occupancyRate.compareTo(BigDecimal.valueOf(0.75)) >= 0) {
-            multiplier = BigDecimal.valueOf(1.20);
-        } else if (occupancyRate.compareTo(BigDecimal.valueOf(0.50)) >= 0) {
-            multiplier = BigDecimal.valueOf(1.10);
-        }
-
-        return basePrice.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    @Override
-    public BigDecimal calculateFinalPrice(Long tripId, Long fromStopId, Long toStopId, String discountType) {
-        Trip trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new NotFoundException("Trip %d not found".formatted(tripId)));
-
-        // 1. Calcular precio base o dinámico
-        BigDecimal price = calculateDynamicPrice(tripId, fromStopId, toStopId);
-
-        // 2. Aplicar descuento si existe
-        if (discountType != null && !discountType.isBlank()) {
-            price = applyDiscount(price, discountType);
-        }
-
-        // 3. Precio mínimo (desde configuración)
-        BigDecimal minPrice = configService.getValue("FARE_MINIMUM_PRICE");
-
-        return price.max(minPrice);
+        // 5. Aplicar precio mínimo
+        var minPrice = configService.getValue("FARE_MINIMUM_PRICE");
+        return basePrice.max(minPrice);
     }
 }

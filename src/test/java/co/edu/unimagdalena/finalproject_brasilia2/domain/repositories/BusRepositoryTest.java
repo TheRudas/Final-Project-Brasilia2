@@ -58,23 +58,23 @@ class BusRepositoryTest extends AbstractRepositoryIT{
     @DisplayName("Bus: find by plate and id")
     void findByPlateAndID() {
         var result = busRepository.findByPlateAndId("BBB222", bus2.getId());
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getCapacity()).isEqualTo(45);
+        assertThat(result).isPresent();
+        assertThat(result.get().getCapacity()).isEqualTo(45);
     }
 
     @Test
     @DisplayName("Bus: find by plate")
     void findByPlate() {
         var result = busRepository.findByPlate("CCC333");
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).isStatus()).isTrue();
+        assertThat(result).isPresent();
+        assertThat(result.get().isStatus()).isTrue();
     }
 
     @Test
     @DisplayName("Bus: find by status")
     void findByStatus() {
-        var activeBuses = busRepository.findByStatus(true);
-        var inactiveBuses = busRepository.findByStatus(false);
+        var activeBuses = busRepository.findByStatus(true, org.springframework.data.domain.PageRequest.of(0, 10));
+        var inactiveBuses = busRepository.findByStatus(false, org.springframework.data.domain.PageRequest.of(0, 10));
 
         assertThat(activeBuses).hasSize(2);
         assertThat(inactiveBuses).hasSize(1);

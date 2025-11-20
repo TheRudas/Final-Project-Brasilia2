@@ -1,6 +1,7 @@
 package co.edu.unimagdalena.finalproject_brasilia2.services;
 
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.FareRuleDtos;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PassengerType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,25 +18,5 @@ public interface FareRuleService {
     Page<FareRuleDtos.FareRuleResponse> getByFromStopId(Long stopId, Pageable pageable);
     Page<FareRuleDtos.FareRuleResponse> getByToStopId(Long stopId, Pageable pageable);
 
-    // ====================== CÁLCULO DE PRECIOS ======================
-
-    /**
-     * Calcula el precio base entre dos paradas de una ruta
-     */
-    BigDecimal calculateFare(Long routeId, Long fromStopId, Long toStopId);
-
-    /**
-     * Aplica un descuento al precio base
-     */
-    BigDecimal applyDiscount(BigDecimal basePrice, String discountType);
-
-    /**
-     * Calcula precio dinámico basado en demanda
-     */
-    BigDecimal calculateDynamicPrice(Long tripId, Long fromStopId, Long toStopId);
-
-    /**
-     * Calcula el precio final con todos los ajustes
-     */
-    BigDecimal calculateFinalPrice(Long tripId, Long fromStopId, Long toStopId, String discountType);
+    BigDecimal calculateTicketPrice(Long tripId, Long fromStopId, Long toStopId, PassengerType passengerType);
 }

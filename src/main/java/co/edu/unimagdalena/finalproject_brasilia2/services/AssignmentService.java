@@ -13,6 +13,7 @@ public interface AssignmentService {
 
     void delete(Long id);
 
+    AssignmentDtos.AssignmentResponse approveChecklist(Long assignmentId);
 
     Page<AssignmentDtos.AssignmentResponse> getByTripId(Long tripId, Pageable pageable);
 

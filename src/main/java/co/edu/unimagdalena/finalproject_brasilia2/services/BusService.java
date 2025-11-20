@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 
 public interface BusService {
         BusDtos.BusResponse create(BusDtos.BusCreateRequest request);
-        BusDtos.BusResponse update(BusDtos.BusUpdateRequest request);
+        BusDtos.BusResponse update(Long id, BusDtos.BusUpdateRequest request);
         BusDtos.BusResponse get(Long id);
         void delete(Long id);
 

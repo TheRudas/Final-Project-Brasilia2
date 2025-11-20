@@ -1,43 +1,46 @@
 package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 
-        import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.*;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Bus;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Route;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Ticket;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Trip;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TripStatus;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.BusRepository;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.RouteRepository;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TicketRepository;
-        import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
-        import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
-        import co.edu.unimagdalena.finalproject_brasilia2.services.TripService;
-        import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TripMapper;
-        import lombok.RequiredArgsConstructor;
-        import org.slf4j.Logger;
-        import org.slf4j.LoggerFactory;
-        import org.springframework.stereotype.Service;
-        import org.springframework.transaction.annotation.Transactional;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.*;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Assignment;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Bus;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Route;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Ticket;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Trip;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TripStatus;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.AssignmentRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.BusRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.RouteRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TicketRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
+import co.edu.unimagdalena.finalproject_brasilia2.services.TripService;
+import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TripMapper;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-        import java.time.LocalDate;
-        import java.time.OffsetDateTime;
-        import java.util.HashSet;
-        import java.util.List;
-        import java.util.Set;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-        @Service
-        @Transactional(readOnly = true)
-        @RequiredArgsConstructor
-        public class TripServiceImpl implements TripService {
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class TripServiceImpl implements TripService {
 
-            private static final Logger log = LoggerFactory.getLogger(TripServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(TripServiceImpl.class);
 
-            private final TripRepository tripRepository;
-            private final RouteRepository routeRepository;
-            private final BusRepository busRepository;
-            private final TicketRepository ticketRepository;
-            private final TripMapper mapper;
+    private final TripRepository tripRepository;
+    private final RouteRepository routeRepository;
+    private final BusRepository busRepository;
+    private final TicketRepository ticketRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final TripMapper mapper;
 
 
             // ========================= CREATE =========================
@@ -316,7 +319,7 @@ package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
             @Override
             @Transactional
             public TripResponse departTrip(Long tripId) {
-                Trip trip = tripRepository.findById(tripId)
+                var trip = tripRepository.findById(tripId)
                         .orElseThrow(() -> new NotFoundException("Trip %d not found".formatted(tripId)));
 
                 if (trip.getStatus() != TripStatus.BOARDING) {
@@ -326,8 +329,22 @@ package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
                     );
                 }
 
-                log.info("Trip {} departing: route={}, bus={}",
-                        tripId, trip.getRoute().getId(), trip.getBus().getPlate());
+                // Validate driver assignment with approved checklist
+                var assignment = assignmentRepository.findFirstByTripId(tripId)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Trip %d must have a driver assigned before departure".formatted(tripId)
+                        ));
+
+                if (!assignment.isCheckListOk()) {
+                    throw new IllegalStateException(
+                            "Trip %d cannot depart: checklist must be completed and approved by dispatcher"
+                                    .formatted(tripId)
+                    );
+                }
+
+                log.info("Trip {} departing: route={}, bus={}, driver={}, checklist=OK",
+                        tripId, trip.getRoute().getId(), trip.getBus().getPlate(),
+                        assignment.getDriver().getId());
 
                 trip.setStatus(TripStatus.DEPARTED);
                 return mapper.toTripResponse(tripRepository.save(trip));

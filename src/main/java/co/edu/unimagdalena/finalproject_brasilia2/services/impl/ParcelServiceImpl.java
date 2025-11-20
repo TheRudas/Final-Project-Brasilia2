@@ -2,11 +2,16 @@ package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.ParcelDtos;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Parcel;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Incident;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.IncidentEntityType;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.IncidentType;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.ParcelStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.ParcelRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.IncidentRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.StopRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
+import co.edu.unimagdalena.finalproject_brasilia2.services.ConfigService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.ParcelService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.ParcelMapper;
 
@@ -17,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
@@ -28,7 +34,9 @@ public class ParcelServiceImpl implements ParcelService {
     private final ParcelRepository repository;
     private final StopRepository stopRepository;
     private final TripRepository tripRepository;
+    private final IncidentRepository incidentRepository;
     private final ParcelMapper mapper;
+    private final ConfigService configService;
 
     @Override
     @Transactional
@@ -40,20 +48,45 @@ public class ParcelServiceImpl implements ParcelService {
         var toStop = stopRepository.findById(request.toStopId())
                 .orElseThrow(() -> new NotFoundException("Destination stop not found"));
 
+        // deben pertenecer a la misma ruta
+        if (!fromStop.getRoute().getId().equals(toStop.getRoute().getId())) {
+            throw new IllegalArgumentException(
+                    "Origin and destination stops must belong to the same route. " +
+                    "Origin route: %d, Destination route: %d"
+                    .formatted(fromStop.getRoute().getId(), toStop.getRoute().getId())
+            );
+        }
+
+        if (fromStop.getOrder() >= toStop.getOrder()) {
+            throw new IllegalArgumentException(
+                    "Origin stop (order: %d) must come before destination stop (order: %d)"
+                    .formatted(fromStop.getOrder(), toStop.getOrder())
+            );
+        }
+
         parcel.setFromStop(fromStop);
         parcel.setToStop(toStop);
-        parcel.setPrice(BigDecimal.valueOf(5.00));
+
+
+        parcel.setCode(generateUniqueParcelCode());
+
+
+        BigDecimal dynamicPrice = calculateParcelPrice(fromStop, toStop);
+        parcel.setPrice(dynamicPrice);
+
         parcel.setStatus(ParcelStatus.CREATED);
         parcel.setDeliveryOtp(generateOtp());
 
         Parcel saved = repository.save(parcel);
+
+
         return mapper.toResponse(saved);
     }
 
     @Override
     @Transactional
     public ParcelDtos.ParcelResponse update(Long id, ParcelDtos.ParcelUpdateRequest request) {
-        Parcel parcel = repository.findById(id)
+        var parcel = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(id)));
 
         mapper.patch(parcel, request);
@@ -70,8 +103,7 @@ public class ParcelServiceImpl implements ParcelService {
             parcel.setToStop(ts);
         }
 
-        Parcel updated = repository.save(parcel);
-        return mapper.toResponse(updated);
+        return mapper.toResponse(repository.save(parcel));
     }
 
     @Override
@@ -84,7 +116,7 @@ public class ParcelServiceImpl implements ParcelService {
     @Override
     @Transactional
     public void delete(Long id) {
-        Parcel parcel = repository.findById(id)
+        var parcel = repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(id)));
         repository.delete(parcel);
     }
@@ -128,7 +160,7 @@ public class ParcelServiceImpl implements ParcelService {
 
     @Override
     public List<ParcelDtos.ParcelResponse> getByStatus(ParcelStatus status) {
-        List<Parcel> parcels = repository.findByStatus(status);
+        var parcels = repository.findByStatus(status);
         if (parcels.isEmpty()) {
             throw new NotFoundException("No parcels found with status: " + status);
         }
@@ -138,7 +170,7 @@ public class ParcelServiceImpl implements ParcelService {
     @Override
     @Transactional
     public ParcelDtos.ParcelResponse deliverParcel(Long parcelId, String otp) {
-        Parcel parcel = repository.findById(parcelId)
+        var parcel = repository.findById(parcelId)
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(parcelId)));
 
         if (parcel.getStatus() != ParcelStatus.IN_TRANSIT) {
@@ -153,23 +185,36 @@ public class ParcelServiceImpl implements ParcelService {
         }
 
         if (!otp.equals(parcel.getDeliveryOtp())) {
-            log.warn("❌ Failed delivery attempt for Parcel {}: Invalid OTP", parcelId);
-            throw new IllegalArgumentException("Invalid OTP");
+
+            // Mark as FAILED and create incident
+            parcel.setStatus(ParcelStatus.FAILED);
+            repository.save(parcel);
+
+            var incident = Incident.builder()
+                    .entityType(IncidentEntityType.PARCEL)
+                    .entityId(parcelId)
+                    .type(IncidentType.DELIVERY_FAIL)
+                    .note("Delivery failed: Invalid OTP provided. Expected: [HIDDEN], Received: " + otp)
+                    .createdAt(OffsetDateTime.now())
+                    .build();
+            incidentRepository.save(incident);
+
+
+            throw new IllegalArgumentException("Invalid OTP - Parcel marked as FAILED and incident created");
         }
 
         parcel.setStatus(ParcelStatus.DELIVERED);
-        Parcel delivered = repository.save(parcel);
 
         log.info("✅ Parcel delivered: ID={}, Code={}, Receiver={}",
                 parcelId, parcel.getCode(), parcel.getReceiverName());
 
-        return mapper.toResponse(delivered);
+        return mapper.toResponse(repository.save(parcel));
     }
 
     @Override
     @Transactional
     public ParcelDtos.ParcelResponse assignToTrip(Long parcelId, Long tripId) {
-        Parcel parcel = repository.findById(parcelId)
+        var parcel = repository.findById(parcelId)
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(parcelId)));
 
         tripRepository.findById(tripId)
@@ -183,33 +228,31 @@ public class ParcelServiceImpl implements ParcelService {
         }
 
         parcel.setStatus(ParcelStatus.IN_TRANSIT);
-        Parcel updated = repository.save(parcel);
 
-        log.info("📦 Parcel assigned to trip: ParcelID={}, TripID={}", parcelId, tripId);
+        log.info("Parcel assigned to trip: ParcelID={}, TripID={}", parcelId, tripId);
 
-        return mapper.toResponse(updated);
+        return mapper.toResponse(repository.save(parcel));
     }
 
     @Override
     @Transactional
     public ParcelDtos.ParcelResponse updateStatus(Long parcelId, ParcelStatus newStatus) {
-        Parcel parcel = repository.findById(parcelId)
+        var parcel = repository.findById(parcelId)
                 .orElseThrow(() -> new NotFoundException("Parcel %d not found".formatted(parcelId)));
 
-        ParcelStatus oldStatus = parcel.getStatus();
+        var oldStatus = parcel.getStatus();
         validateStatusTransition(oldStatus, newStatus);
 
         parcel.setStatus(newStatus);
-        Parcel updated = repository.save(parcel);
 
         log.info("Parcel status updated: ID={}, {} -> {}", parcelId, oldStatus, newStatus);
 
-        return mapper.toResponse(updated);
+        return mapper.toResponse(repository.save(parcel));
     }
 
     @Override
     public List<ParcelDtos.ParcelResponse> listParcelsForDelivery(Long stopId) {
-        List<Parcel> parcels = repository.findByToStopIdAndStatus(stopId, ParcelStatus.IN_TRANSIT);
+        var parcels = repository.findByToStopIdAndStatus(stopId, ParcelStatus.IN_TRANSIT);
 
         if (parcels.isEmpty()) {
             log.info("No parcels pending delivery at stop {}", stopId);
@@ -257,5 +300,39 @@ public class ParcelServiceImpl implements ParcelService {
         SecureRandom random = new SecureRandom();
         int number = random.nextInt(100_000_000);
         return String.format("%08d", number);
+    }
+
+
+    private String generateUniqueParcelCode() {
+        var random = new SecureRandom();
+        var today = java.time.LocalDate.now();
+        var datePrefix = today.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        String code;
+        do {
+            var randomSuffix = random.nextInt(100000); // 0-99999
+            code = "PCL-%s-%05d".formatted(datePrefix, randomSuffix);
+        } while (repository.existsByCode(code));
+
+        return code;
+    }
+
+    /**
+     * Calculate dynamic price based on distance between stops
+     * Base price per stop: $2.50
+     */
+    private BigDecimal calculateParcelPrice(co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop fromStop,
+                                           co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop toStop) {
+        var basePricePerStop = configService.getValue("PARCEL_BASE_PRICE_PER_STOP");
+        var stopsDistance = Math.abs(toStop.getOrder() - fromStop.getOrder());
+
+        if (stopsDistance == 0) stopsDistance = 1; // Minimum
+
+        var totalPrice = basePricePerStop.multiply(BigDecimal.valueOf(stopsDistance));
+
+        log.debug("💰 Parcel price calculated: {} stops × ${} = ${}",
+                stopsDistance, basePricePerStop, totalPrice);
+
+        return totalPrice;
     }
 }

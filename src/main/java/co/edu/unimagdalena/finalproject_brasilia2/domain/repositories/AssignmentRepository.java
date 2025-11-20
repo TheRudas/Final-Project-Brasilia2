@@ -19,4 +19,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment,Long> {
 
     long countByCheckListOk(boolean checkListOk);
     boolean existsByDriverId(Long driverId);
+    boolean existsByTripId(Long tripId);
+
+    // Search a unique assignment for a trip
+    Optional<Assignment> findFirstByTripId(Long tripId);
 }

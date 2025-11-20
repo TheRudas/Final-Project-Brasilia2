@@ -73,6 +73,9 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     // Verificar si existe un viaje con ciertos criterios
     boolean existsByBusIdAndDateAndStatusIn(Long busId, LocalDate date, List<TripStatus> statuses);
 
+    // ⭐ NUEVO: Verificar si un bus tiene trips asignados
+    boolean existsByBusId(Long busId);
+
     // Buscar viajes próximos a partir (para recordatorios)
     @Query("""
         SELECT t FROM Trip t
