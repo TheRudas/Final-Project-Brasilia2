@@ -3,6 +3,7 @@ package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TicketDtos.*;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.*;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PaymentMethod;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.SeatHoldStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
@@ -35,6 +36,7 @@ public class TicketServiceImpl implements TicketService {
     private final SeatRepository seatRepository;
     private final TicketMapper mapper;
     private final ConfigService configService;
+    private final SeatHoldRepository seatHoldRepository;
     private final FareRuleService fareRuleService;
 
     @Override
@@ -98,6 +100,14 @@ public class TicketServiceImpl implements TicketService {
         ticket.setPassengerType(ticket.getPassengerType());
         ticket.setToStop(toStop);
         ticket.setQrCode(generateQrCode());
+
+        // Mark SeatHold EXPIRED if exists (consume the hold)
+        seatHoldRepository.findByTripIdAndSeatNumberAndStatus(trip.getId(), request.seatNumber(), SeatHoldStatus.HOLD)
+                .ifPresent(hold -> {
+                    hold.setStatus(SeatHoldStatus.EXPIRED);
+                    seatHoldRepository.save(hold);
+                });
+
 
         return mapper.toResponse(ticketRepository.save(ticket));
     }

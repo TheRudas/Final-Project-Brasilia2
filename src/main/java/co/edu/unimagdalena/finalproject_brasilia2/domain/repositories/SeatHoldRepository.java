@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface SeatHoldRepository extends JpaRepository<SeatHold, Long> {
 
@@ -16,7 +17,7 @@ public interface SeatHoldRepository extends JpaRepository<SeatHold, Long> {
     List<SeatHold> findByUserIdAndTripId(Long userId, Long tripId);
     boolean existsByUserIdAndTripId(Long userId, Long tripId);
     boolean existsSeatHoldById(Long id);
-
+    Optional<SeatHold> findByTripIdAndSeatNumberAndStatus(Long tripId, String seatNumber, SeatHoldStatus status);
 
     /*
       Busca holds vencidos (generada automáticamente por Spring Data JPA)
