@@ -50,6 +50,9 @@ class TicketServiceImplTest {
     @Mock
     private ConfigService configService;
 
+    @Mock
+    private FareRuleService fareRuleService;
+
     @Spy
     private TicketMapper mapper = Mappers.getMapper(TicketMapper.class);
 
@@ -108,6 +111,8 @@ class TicketServiceImplTest {
         when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
         when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
         when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(false);
+        doReturn(new BigDecimal("50000.00"))
+                .when(fareRuleService).calculateTicketPrice(anyLong(), anyLong(), anyLong(), any());
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> {
             Ticket t = inv.getArgument(0);
             t.setId(10L);
@@ -177,6 +182,8 @@ class TicketServiceImplTest {
         when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(false);
         when(seatHoldRepository.findByTripIdAndSeatNumberAndStatus(1L, "A1", SeatHoldStatus.HOLD))
                 .thenReturn(Optional.of(seatHold));
+        doReturn(new BigDecimal("50000.00"))
+                .when(fareRuleService).calculateTicketPrice(anyLong(), anyLong(), anyLong(), any());
         when(seatHoldRepository.save(any(SeatHold.class))).thenAnswer(inv -> inv.getArgument(0));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> {
             Ticket t = inv.getArgument(0);

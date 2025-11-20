@@ -42,24 +42,30 @@ public class FareRuleServiceImpl implements FareRuleService {
     @Transactional
     public FareRuleDtos.FareRuleResponse create(FareRuleDtos.FareRuleCreateRequest dto) {
 
-        Route route = routeRepository.findById(dto.routeId())
+        var route = routeRepository.findById(dto.routeId())
                 .orElseThrow(() -> new NotFoundException("Route %d not found".formatted(dto.routeId())));
 
-        Stop from = stopRepository.findById(dto.fromStopId())
+        var from = stopRepository.findById(dto.fromStopId())
                 .orElseThrow(() -> new NotFoundException("FromStop %d not found".formatted(dto.fromStopId())));
 
-        Stop to = stopRepository.findById(dto.toStopId())
+        var to = stopRepository.findById(dto.toStopId())
                 .orElseThrow(() -> new NotFoundException("ToStop %d not found".formatted(dto.toStopId())));
 
-        FareRule entity = mapper.toEntity(dto);
+        // Validate no duplicate FareRule for this segment
+        if (repository.existsByRouteIdAndFromStopIdAndToStopId(dto.routeId(), dto.fromStopId(), dto.toStopId())) {
+            throw new IllegalStateException(
+                    "FareRule already exists for route %d from stop %d to stop %d"
+                            .formatted(dto.routeId(), dto.fromStopId(), dto.toStopId())
+            );
+        }
+
+        var entity = mapper.toEntity(dto);
 
         entity.setRoute(route);
         entity.setFromStop(from);
         entity.setToStop(to);
 
-        FareRule saved = repository.save(entity);
-
-        return mapper.toResponse(saved);
+        return mapper.toResponse(repository.save(entity));
     }
 
     // ========================= UPDATE =========================
