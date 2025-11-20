@@ -17,6 +17,9 @@ public interface AssignmentMapper {
     Assignment toEntity(AssignmentDtos.AssignmentCreateRequest dto);
 
     // Respuesta: MapStruct mapea por nombre, si los nombres son distintos usa @Mapping
+    @Mapping(source = "trip.id", target = "tripId")
+    @Mapping(source = "driver.id", target = "driverId")
+    @Mapping(source = "dispatcher.id", target = "dispatcherId")
     AssignmentDtos.AssignmentResponse toResponse(Assignment entity);
 
     // Lista: útil para devolver colecciones en endpoints REST
