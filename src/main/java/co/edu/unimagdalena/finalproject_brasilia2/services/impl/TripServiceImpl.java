@@ -1,18 +1,15 @@
 package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 
-import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.*;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Assignment;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.TripCreateRequest;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.TripResponse;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.TripUpdateRequest;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Bus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Route;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Ticket;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Trip;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TripStatus;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.AssignmentRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.BusRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.RouteRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TicketRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.TripService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TripMapper;

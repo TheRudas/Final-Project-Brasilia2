@@ -4,5 +4,5 @@ public enum PassengerType {
     ADULT, //No senior, olvidate ya tu estas grande
     CHILD,
     STUDENT,
-    SENIOR;
+    SENIOR
 }

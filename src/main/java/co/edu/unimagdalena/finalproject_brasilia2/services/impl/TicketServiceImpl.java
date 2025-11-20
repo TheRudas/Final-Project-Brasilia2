@@ -35,7 +35,6 @@ public class TicketServiceImpl implements TicketService {
     private final SeatRepository seatRepository;
     private final TicketMapper mapper;
     private final ConfigService configService;
-    private final FareRuleRepository fareRuleRepository;
     private final FareRuleService fareRuleService;
 
     @Override
