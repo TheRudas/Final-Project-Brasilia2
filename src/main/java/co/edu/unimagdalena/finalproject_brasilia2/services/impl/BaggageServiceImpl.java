@@ -23,9 +23,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
-@Service
-@Transactional(readOnly = true)
-@RequiredArgsConstructor
+    @Service
+    @Transactional(readOnly = true)
+    @RequiredArgsConstructor
 public class BaggageServiceImpl implements BaggageService {
     private final BaggageRepository baggageRepository;
     private final TicketRepository ticketRepository;

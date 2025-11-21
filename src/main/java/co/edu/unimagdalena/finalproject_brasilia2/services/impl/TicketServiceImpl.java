@@ -8,6 +8,7 @@ import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketSt
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.ConfigService;
+import co.edu.unimagdalena.finalproject_brasilia2.services.FareRuleService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.TicketService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TicketMapper;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,8 @@ public class TicketServiceImpl implements TicketService {
     private final SeatHoldRepository seatHoldRepository;
     private final TicketMapper mapper;
     private final ConfigService configService;
+    private final SeatHoldRepository seatHoldRepository;
+    private final FareRuleService fareRuleService;
 
     @Override
     @Transactional
@@ -81,12 +84,21 @@ public class TicketServiceImpl implements TicketService {
             );
         }
 
+
+
         // Crear ticket
         Ticket ticket = mapper.toEntity(request);
         ticket.setTrip(trip);
         ticket.setPassenger(passenger);
         ticket.setFromStop(fromStop);
         ticket.setToStop(toStop);
+
+        //Por fin Gamero "implemento" (le pidio a la IA) la logica del tipo de pasajero y el precio
+        var price = (fareRuleService.calculateTicketPrice(
+                trip.getId(), fromStop.getId(), toStop.getId(), ticket.getPassengerType()
+        ));
+
+        ticket.setPrice(price);
         ticket.setQrCode(generateQrCode());
 
         // Mark SeatHold EXPIRED if exists (consume the hold)
