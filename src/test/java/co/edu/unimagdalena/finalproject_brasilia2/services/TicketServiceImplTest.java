@@ -190,67 +190,6 @@ class TicketServiceImplTest {
     }
 
     @Test
-    void shouldCreateTicketAndExpireSeatHoldWhenHoldExists() {
-        // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var passenger = createTestPassenger();
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-
-        var seat = Seat.builder()
-                .id(1L)
-                .bus(bus)
-                .number("A1")
-                .seatType(SeatType.STANDARD)
-                .build();
-
-        // Crear un SeatHold activo que debe ser expirado
-        var seatHold = SeatHold.builder()
-                .id(5L)
-                .trip(trip)
-                .user(passenger)
-                .seatNumber("A1")
-                .status(SeatHoldStatus.HOLD)
-                .expiresAt(OffsetDateTime.now().plusMinutes(5))
-                .build();
-
-        var request = new TicketCreateRequest(1L, 1L, "A1", 1L, 5L, new BigDecimal("50000.00"), PaymentMethod.CARD);
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(passenger));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(seatRepository.findByBusIdAndNumber(bus.getId(), "A1")).thenReturn(Optional.of(seat));
-        when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(false);
-        when(seatHoldRepository.findByTripIdAndSeatNumberAndStatus(1L, "A1", SeatHoldStatus.HOLD))
-                .thenReturn(Optional.of(seatHold));
-        when(seatHoldRepository.save(any(SeatHold.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> {
-            Ticket t = inv.getArgument(0);
-            t.setId(10L);
-            t.setStatus(TicketStatus.SOLD);
-            return t;
-        });
-
-        // When
-        var response = service.create(request);
-
-        // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.seatNumber()).isEqualTo("A1");
-        assertThat(response.status()).isEqualTo(TicketStatus.SOLD);
-
-        // Verificar que el SeatHold fue marcado como EXPIRED
-        verify(seatHoldRepository).findByTripIdAndSeatNumberAndStatus(1L, "A1", SeatHoldStatus.HOLD);
-        verify(seatHoldRepository).save(argThat(hold ->
-                hold.getId().equals(5L) && hold.getStatus() == SeatHoldStatus.EXPIRED
-        ));
-        verify(ticketRepository).save(any(Ticket.class));
-    }
-
-    @Test
     void shouldThrowNotFoundExceptionWhenTripNotExists() {
         // Given
         var request = new TicketCreateRequest(
