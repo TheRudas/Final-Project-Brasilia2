@@ -90,6 +90,7 @@ public class TicketServiceImpl implements TicketService {
         ticket.setTrip(trip);
         ticket.setPassenger(passenger);
         ticket.setFromStop(fromStop);
+        ticket.setToStop(toStop);
 
         //Por fin Gamero "implemento" (le pidio a la IA) la logica del tipo de pasajero y el precio
         var price = (fareRuleService.calculateTicketPrice(
@@ -97,8 +98,6 @@ public class TicketServiceImpl implements TicketService {
         ));
 
         ticket.setPrice(price);
-        ticket.setPassengerType(ticket.getPassengerType());
-        ticket.setToStop(toStop);
         ticket.setQrCode(generateQrCode());
 
         // Mark SeatHold EXPIRED if exists (consume the hold)

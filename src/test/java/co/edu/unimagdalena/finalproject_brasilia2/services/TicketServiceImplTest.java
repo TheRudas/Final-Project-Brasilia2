@@ -20,7 +20,6 @@ import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
@@ -65,6 +64,7 @@ class TicketServiceImplTest {
     @InjectMocks
     private TicketServiceImpl service;
 
+    @Test
     void shouldCreateTicketSuccessfully() {
         // Given
         var passenger = User.builder()
@@ -138,7 +138,8 @@ class TicketServiceImplTest {
                 1L,                              // fromStopId
                 5L,                              // toStopId
                 new BigDecimal("50000.00"),     // price (será recalculado por FareRuleService)
-                PaymentMethod.CARD
+                PaymentMethod.CARD,
+                PassengerType.ADULT             // passengerType
         );
 
         when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
@@ -149,7 +150,7 @@ class TicketServiceImplTest {
         when(ticketRepository.existsOverlappingTicket(1L, "A1", 1, 5)).thenReturn(false);
         when(seatHoldRepository.findByTripIdAndSeatNumberAndStatus(1L, "A1", SeatHoldStatus.HOLD))
                 .thenReturn(Optional.empty());
-        when(fareRuleService.calculateTicketPrice(anyLong(), anyLong(), anyLong(), any(PassengerType.class)))
+        when(fareRuleService.calculateTicketPrice(eq(1L), eq(1L), eq(5L), any()))
                 .thenReturn(new BigDecimal("50000.00"));
         when(ticketRepository.save(any(Ticket.class))).thenAnswer(inv -> {
             Ticket t = inv.getArgument(0);
@@ -173,6 +174,7 @@ class TicketServiceImplTest {
         assertThat(response.price()).isEqualByComparingTo(new BigDecimal("50000.00"));
         assertThat(response.paymentMethod()).isEqualTo(PaymentMethod.CARD);
         assertThat(response.status()).isEqualTo(TicketStatus.SOLD);
+        assertThat(response.passengerType()).isEqualTo(PassengerType.ADULT);
         assertThat(response.qrCode()).startsWith("QR-"); // Auto-generado
         assertThat(response.departureAt()).isEqualTo(OffsetDateTime.of(2025, 12, 20, 8, 0, 0, 0, ZoneOffset.UTC));
 
@@ -182,7 +184,7 @@ class TicketServiceImplTest {
         verify(stopRepository).findById(5L);
         verify(seatRepository).findByBusIdAndNumber(bus.getId(), "A1");
         verify(ticketRepository).existsOverlappingTicket(1L, "A1", 1, 5);
-        verify(fareRuleService).calculateTicketPrice(eq(1L), eq(1L), eq(5L), any(PassengerType.class));
+        verify(fareRuleService).calculateTicketPrice(eq(1L), eq(1L), eq(5L), eq(PassengerType.ADULT));
         verify(seatHoldRepository).findByTripIdAndSeatNumberAndStatus(1L, "A1", SeatHoldStatus.HOLD);
         verify(ticketRepository).save(any(Ticket.class));
     }
@@ -197,7 +199,8 @@ class TicketServiceImplTest {
                 10L,
                 11L,
                 new BigDecimal("50000"),
-                PaymentMethod.CASH
+                PaymentMethod.CASH,
+                PassengerType.ADULT
         );
 
         when(tripRepository.findById(99L)).thenReturn(Optional.empty());
@@ -222,7 +225,8 @@ class TicketServiceImplTest {
                 10L,
                 11L,
                 new BigDecimal("50000"),
-                PaymentMethod.CASH
+                PaymentMethod.CASH,
+                PassengerType.ADULT
         );
 
         when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
@@ -253,7 +257,8 @@ class TicketServiceImplTest {
                 10L,
                 11L,
                 new BigDecimal("50000"),
-                PaymentMethod.CASH
+                PaymentMethod.CASH,
+                PassengerType.ADULT
         );
 
         when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
@@ -288,7 +293,8 @@ class TicketServiceImplTest {
                 10L,
                 11L,
                 new BigDecimal("50000"),
-                PaymentMethod.CASH
+                PaymentMethod.CASH,
+                PassengerType.ADULT
         );
 
         when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
@@ -323,7 +329,8 @@ class TicketServiceImplTest {
                 10L,
                 11L,
                 new BigDecimal("50000"),
-                PaymentMethod.CASH
+                PaymentMethod.CASH,
+                PassengerType.ADULT
         );
 
         when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
