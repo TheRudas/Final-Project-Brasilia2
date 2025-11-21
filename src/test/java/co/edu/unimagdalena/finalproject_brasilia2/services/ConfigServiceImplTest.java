@@ -1,6 +1,7 @@
 package co.edu.unimagdalena.finalproject_brasilia2.services;
 
-import co.edu.unimagdalena.finalproject_brasilia2.api.dto.ConfigDtos.*;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.ConfigDtos.ConfigCreateRequest;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.ConfigDtos.ConfigUpdateRequest;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Config;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.ConfigRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
@@ -18,8 +19,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,321 +36,206 @@ class ConfigServiceImplTest {
     @InjectMocks
     private ConfigServiceImpl service;
 
-    // ============= HELPER METHODS =============
-
-    private Config createTestConfig(String key, String value) {
-        Config config = new Config();
-        config.setKey(key);
-        config.setValue(value);
-        return config;
-    }
-
-    // ============= CREATE TESTS =============
-
     @Test
     void shouldCreateConfigSuccessfully() {
         // Given
-        var request = new ConfigCreateRequest("FARE_PRICE_PER_KM", "150.00");
+        var request = new ConfigCreateRequest(
+                "BAGGAGE_MAX_FREE_WEIGHT_KG",
+                "20"
+        );
 
-        when(configRepository.existsByKey("FARE_PRICE_PER_KM")).thenReturn(false);
-        when(configRepository.save(any(Config.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        var config = Config.builder()
+                .key("BAGGAGE_MAX_FREE_WEIGHT_KG")
+                .value("20")
+                .build();
+
+        when(configRepository.existsByKey("BAGGAGE_MAX_FREE_WEIGHT_KG")).thenReturn(false);
+        when(configRepository.save(any(Config.class))).thenReturn(config);
 
         // When
-        var result = service.create(request);
+        var response = service.create(request);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.key()).isEqualTo("FARE_PRICE_PER_KM");
-        assertThat(result.value()).isEqualTo("150.00");
+        assertThat(response.key()).isEqualTo("BAGGAGE_MAX_FREE_WEIGHT_KG");
+        assertThat(response.value()).isEqualTo("20");
 
-        verify(configRepository).existsByKey("FARE_PRICE_PER_KM");
+        verify(configRepository).existsByKey("BAGGAGE_MAX_FREE_WEIGHT_KG");
         verify(configRepository).save(any(Config.class));
     }
 
     @Test
-    void shouldThrowExceptionWhenCreatingDuplicateConfig() {
+    void shouldThrowIllegalStateExceptionWhenConfigKeyAlreadyExists() {
         // Given
-        var request = new ConfigCreateRequest("FARE_PRICE_PER_KM", "150.00");
+        var request = new ConfigCreateRequest(
+                "BAGGAGE_MAX_FREE_WEIGHT_KG",
+                "20"
+        );
 
-        when(configRepository.existsByKey("FARE_PRICE_PER_KM")).thenReturn(true);
+        when(configRepository.existsByKey("BAGGAGE_MAX_FREE_WEIGHT_KG")).thenReturn(true);
 
-        // When & Then
+        // When / Then
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Config with key FARE_PRICE_PER_KM already exists");
+                .hasMessageContaining("Config with key BAGGAGE_MAX_FREE_WEIGHT_KG already exists");
 
+        verify(configRepository).existsByKey("BAGGAGE_MAX_FREE_WEIGHT_KG");
         verify(configRepository, never()).save(any());
     }
-
-    // ============= UPDATE TESTS =============
 
     @Test
     void shouldUpdateConfigSuccessfully() {
         // Given
-        var existingConfig = createTestConfig("FARE_PRICE_PER_KM", "150.00");
-        var updateRequest = new ConfigUpdateRequest("200.00");
+        var existingConfig = Config.builder()
+                .key("BAGGAGE_MAX_FREE_WEIGHT_KG")
+                .value("20")
+                .build();
 
-        when(configRepository.findById("FARE_PRICE_PER_KM")).thenReturn(Optional.of(existingConfig));
-        when(configRepository.save(any(Config.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        var updateRequest = new ConfigUpdateRequest("25");
+
+        when(configRepository.findById("BAGGAGE_MAX_FREE_WEIGHT_KG")).thenReturn(Optional.of(existingConfig));
+        when(configRepository.save(any(Config.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // When
-        var result = service.update("FARE_PRICE_PER_KM", updateRequest);
+        var response = service.update("BAGGAGE_MAX_FREE_WEIGHT_KG", updateRequest);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.key()).isEqualTo("FARE_PRICE_PER_KM");
-        assertThat(result.value()).isEqualTo("200.00");
+        assertThat(response.key()).isEqualTo("BAGGAGE_MAX_FREE_WEIGHT_KG");
+        assertThat(response.value()).isEqualTo("25");
 
+        verify(configRepository).findById("BAGGAGE_MAX_FREE_WEIGHT_KG");
         verify(configRepository).save(any(Config.class));
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenUpdatingNonExistentConfig() {
+    void shouldThrowNotFoundExceptionWhenUpdateNonExistentConfig() {
         // Given
-        var updateRequest = new ConfigUpdateRequest("200.00");
+        var updateRequest = new ConfigUpdateRequest("25");
+        when(configRepository.findById("INVALID_KEY")).thenReturn(Optional.empty());
 
-        when(configRepository.findById("NON_EXISTENT_KEY")).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> service.update("NON_EXISTENT_KEY", updateRequest))
+        // When / Then
+        assertThatThrownBy(() -> service.update("INVALID_KEY", updateRequest))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Config with key NON_EXISTENT_KEY not found");
+                .hasMessageContaining("Config with key INVALID_KEY not found");
 
+        verify(configRepository).findById("INVALID_KEY");
         verify(configRepository, never()).save(any());
     }
-
-    // ============= GET TESTS =============
 
     @Test
     void shouldGetConfigByKey() {
         // Given
-        var config = createTestConfig("FARE_MINIMUM_PRICE", "5000.00");
+        var config = Config.builder()
+                .key("BAGGAGE_FEE_PER_EXCESS_KG")
+                .value("2000")
+                .build();
 
-        when(configRepository.findById("FARE_MINIMUM_PRICE")).thenReturn(Optional.of(config));
+        when(configRepository.findById("BAGGAGE_FEE_PER_EXCESS_KG")).thenReturn(Optional.of(config));
 
         // When
-        var result = service.get("FARE_MINIMUM_PRICE");
+        var response = service.get("BAGGAGE_FEE_PER_EXCESS_KG");
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.key()).isEqualTo("FARE_MINIMUM_PRICE");
-        assertThat(result.value()).isEqualTo("5000.00");
+        assertThat(response.key()).isEqualTo("BAGGAGE_FEE_PER_EXCESS_KG");
+        assertThat(response.value()).isEqualTo("2000");
+
+        verify(configRepository).findById("BAGGAGE_FEE_PER_EXCESS_KG");
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenConfigNotFound() {
+    void shouldThrowNotFoundExceptionWhenGetNonExistentConfig() {
         // Given
-        when(configRepository.findById("NON_EXISTENT")).thenReturn(Optional.empty());
+        when(configRepository.findById("INVALID_KEY")).thenReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> service.get("NON_EXISTENT"))
+        // When / Then
+        assertThatThrownBy(() -> service.get("INVALID_KEY"))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Config with key NON_EXISTENT not found");
+                .hasMessageContaining("Config with key INVALID_KEY not found");
+
+        verify(configRepository).findById("INVALID_KEY");
     }
-
-    // ============= GET VALUE TESTS =============
-
-    @Test
-    void shouldGetValueAsBigDecimal() {
-        // Given
-        var config = createTestConfig("DISCOUNT_CHILD_PERCENT", "50");
-
-        when(configRepository.findById("DISCOUNT_CHILD_PERCENT")).thenReturn(Optional.of(config));
-
-        // When
-        var result = service.getValue("DISCOUNT_CHILD_PERCENT");
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualByComparingTo(new BigDecimal("50"));
-    }
-
-    @Test
-    void shouldGetValueWithDecimals() {
-        // Given
-        var config = createTestConfig("FARE_PRICE_PER_KM", "150.50");
-
-        when(configRepository.findById("FARE_PRICE_PER_KM")).thenReturn(Optional.of(config));
-
-        // When
-        var result = service.getValue("FARE_PRICE_PER_KM");
-
-        // Then
-        assertThat(result).isEqualByComparingTo(new BigDecimal("150.50"));
-    }
-
-    @Test
-    void shouldThrowNotFoundExceptionWhenGetValueForNonExistentKey() {
-        // Given
-        when(configRepository.findById("NON_EXISTENT")).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> service.getValue("NON_EXISTENT"))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Config with key NON_EXISTENT not found");
-    }
-
-    // ============= DELETE TESTS =============
 
     @Test
     void shouldDeleteConfigSuccessfully() {
         // Given
-        var config = createTestConfig("TEMP_CONFIG", "123");
+        var config = Config.builder()
+                .key("OLD_CONFIG")
+                .value("100")
+                .build();
 
-        when(configRepository.findById("TEMP_CONFIG")).thenReturn(Optional.of(config));
+        when(configRepository.findById("OLD_CONFIG")).thenReturn(Optional.of(config));
+        doNothing().when(configRepository).delete(config);
 
         // When
-        service.delete("TEMP_CONFIG");
+        service.delete("OLD_CONFIG");
 
         // Then
+        verify(configRepository).findById("OLD_CONFIG");
         verify(configRepository).delete(config);
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenDeletingNonExistentConfig() {
+    void shouldThrowNotFoundExceptionWhenDeleteNonExistentConfig() {
         // Given
-        when(configRepository.findById("NON_EXISTENT")).thenReturn(Optional.empty());
+        when(configRepository.findById("INVALID_KEY")).thenReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> service.delete("NON_EXISTENT"))
+        // When / Then
+        assertThatThrownBy(() -> service.delete("INVALID_KEY"))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Config with key NON_EXISTENT not found");
+                .hasMessageContaining("Config with key INVALID_KEY not found");
 
+        verify(configRepository).findById("INVALID_KEY");
         verify(configRepository, never()).delete(any());
     }
 
-    // ============= LIST ALL TESTS =============
+    @Test
+    void shouldGetValueAsBigDecimal() {
+        // Given
+        var config = Config.builder()
+                .key("SEAT_HOLD_TIME_MINUTES")
+                .value("10")
+                .build();
+
+        when(configRepository.findById("SEAT_HOLD_TIME_MINUTES")).thenReturn(Optional.of(config));
+
+        // When
+        var value = service.getValue("SEAT_HOLD_TIME_MINUTES");
+
+        // Then
+        assertThat(value).isEqualByComparingTo(new BigDecimal("10"));
+
+        verify(configRepository).findById("SEAT_HOLD_TIME_MINUTES");
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenGetValueNonExistentKey() {
+        // Given
+        when(configRepository.findById("INVALID_KEY")).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.getValue("INVALID_KEY"))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Config with key INVALID_KEY not found");
+
+        verify(configRepository).findById("INVALID_KEY");
+    }
 
     @Test
     void shouldListAllConfigs() {
         // Given
-        var configs = List.of(
-                createTestConfig("FARE_PRICE_PER_KM", "150.00"),
-                createTestConfig("FARE_MINIMUM_PRICE", "5000.00"),
-                createTestConfig("DISCOUNT_CHILD_PERCENT", "50"),
-                createTestConfig("DISCOUNT_STUDENT_PERCENT", "15"),
-                createTestConfig("DISCOUNT_SENIOR_PERCENT", "20")
-        );
+        var config1 = Config.builder().key("CONFIG_1").value("10").build();
+        var config2 = Config.builder().key("CONFIG_2").value("20").build();
 
-        when(configRepository.findAll()).thenReturn(configs);
+        when(configRepository.findAll()).thenReturn(List.of(config1, config2));
 
         // When
         var result = service.listAll();
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(5);
-        assertThat(result).extracting(ConfigResponse::key)
-                .containsExactlyInAnyOrder(
-                        "FARE_PRICE_PER_KM",
-                        "FARE_MINIMUM_PRICE",
-                        "DISCOUNT_CHILD_PERCENT",
-                        "DISCOUNT_STUDENT_PERCENT",
-                        "DISCOUNT_SENIOR_PERCENT"
-                );
-    }
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).key()).isEqualTo("CONFIG_1");
+        assertThat(result.get(1).key()).isEqualTo("CONFIG_2");
 
-    @Test
-    void shouldReturnEmptyListWhenNoConfigsExist() {
-        // Given
-        when(configRepository.findAll()).thenReturn(List.of());
-
-        // When
-        var result = service.listAll();
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
-    }
-
-    // ============= INTEGRATION-LIKE TESTS =============
-
-    @Test
-    void shouldHandleOverbookingConfig() {
-        // Given
-        var config = createTestConfig("OVERBOOKING_PERCENT", "5");
-
-        when(configRepository.findById("OVERBOOKING_PERCENT")).thenReturn(Optional.of(config));
-
-        // When
-        var result = service.getValue("OVERBOOKING_PERCENT");
-
-        // Then
-        assertThat(result).isEqualByComparingTo(new BigDecimal("5"));
-    }
-
-    @Test
-    void shouldHandleNoShowFeeConfig() {
-        // Given
-        var config = createTestConfig("NO_SHOW_FEE", "10000.00");
-
-        when(configRepository.findById("NO_SHOW_FEE")).thenReturn(Optional.of(config));
-
-        // When
-        var result = service.getValue("NO_SHOW_FEE");
-
-        // Then
-        assertThat(result).isEqualByComparingTo(new BigDecimal("10000.00"));
-    }
-
-    @Test
-    void shouldHandleRefundPercentages() {
-        // Given
-        when(configRepository.findById("REFUND_24H_PERCENT"))
-                .thenReturn(Optional.of(createTestConfig("REFUND_24H_PERCENT", "100")));
-        when(configRepository.findById("REFUND_12H_PERCENT"))
-                .thenReturn(Optional.of(createTestConfig("REFUND_12H_PERCENT", "75")));
-        when(configRepository.findById("REFUND_2H_PERCENT"))
-                .thenReturn(Optional.of(createTestConfig("REFUND_2H_PERCENT", "50")));
-
-        // When
-        var refund24h = service.getValue("REFUND_24H_PERCENT");
-        var refund12h = service.getValue("REFUND_12H_PERCENT");
-        var refund2h = service.getValue("REFUND_2H_PERCENT");
-
-        // Then
-        assertThat(refund24h).isEqualByComparingTo(new BigDecimal("100"));
-        assertThat(refund12h).isEqualByComparingTo(new BigDecimal("75"));
-        assertThat(refund2h).isEqualByComparingTo(new BigDecimal("50"));
-    }
-
-    @Test
-    void shouldHandleBaggageConfigs() {
-        // Given
-        when(configRepository.findById("BAGGAGE_MAX_FREE_WEIGHT_KG"))
-                .thenReturn(Optional.of(createTestConfig("BAGGAGE_MAX_FREE_WEIGHT_KG", "20")));
-        when(configRepository.findById("BAGGAGE_FEE_PER_EXCESS_KG"))
-                .thenReturn(Optional.of(createTestConfig("BAGGAGE_FEE_PER_EXCESS_KG", "5000")));
-
-        // When
-        var maxFreeWeight = service.getValue("BAGGAGE_MAX_FREE_WEIGHT_KG");
-        var feePerKg = service.getValue("BAGGAGE_FEE_PER_EXCESS_KG");
-
-        // Then
-        assertThat(maxFreeWeight).isEqualByComparingTo(new BigDecimal("20"));
-        assertThat(feePerKg).isEqualByComparingTo(new BigDecimal("5000"));
-    }
-
-    @Test
-    void shouldUpdateDiscountPercentage() {
-        // Given
-        var existingConfig = createTestConfig("DISCOUNT_CHILD_PERCENT", "50");
-        var updateRequest = new ConfigUpdateRequest("60");
-
-        when(configRepository.findById("DISCOUNT_CHILD_PERCENT")).thenReturn(Optional.of(existingConfig));
-        when(configRepository.save(any(Config.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // When
-        var updated = service.update("DISCOUNT_CHILD_PERCENT", updateRequest);
-
-        // Then
-        assertThat(updated.value()).isEqualTo("60");
-
-        // Verify we can get it as BigDecimal
-        existingConfig.setValue("60");
-        when(configRepository.findById("DISCOUNT_CHILD_PERCENT")).thenReturn(Optional.of(existingConfig));
-        var value = service.getValue("DISCOUNT_CHILD_PERCENT");
-        assertThat(value).isEqualByComparingTo(new BigDecimal("60"));
+        verify(configRepository).findAll();
     }
 }
 

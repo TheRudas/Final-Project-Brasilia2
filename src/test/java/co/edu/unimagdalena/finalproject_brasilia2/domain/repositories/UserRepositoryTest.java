@@ -17,68 +17,56 @@ public class UserRepositoryTest extends AbstractRepositoryIT {
     @Autowired
     private UserRepository userRepository;
 
-    private User passenger1;
-    private User passenger2;
-    private User driver1;
-    private User admin;
-    private User inactiveUser;
+    private User user1;
+    private User user2;
+    private User user3;
+    private User user4;
 
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
 
-        // Create active passengers
-        passenger1 = User.builder()
+        OffsetDateTime now = OffsetDateTime.now();
+
+        // Create users
+        user1 = User.builder()
                 .name("Juan Perez")
-                .email("juan@mail.com")
-                .phone("3001111111")
+                .email("juan.perez@mail.com")
+                .phone("3001234567")
+                .passwordHash("hashed_password_123")
                 .role(UserRole.PASSENGER)
                 .status(true)
-                .passwordHash("hash123")
-                .createdAt(OffsetDateTime.now())
+                .createdAt(now.minusDays(10))
                 .build();
 
-        passenger2 = User.builder()
+        user2 = User.builder()
                 .name("Maria Garcia")
-                .email("maria@mail.com")
-                .phone("3002222222")
-                .role(UserRole.PASSENGER)
-                .status(true)
-                .passwordHash("hash456")
-                .createdAt(OffsetDateTime.now())
-                .build();
-
-        // Create driver
-        driver1 = User.builder()
-                .name("Carlos Rodriguez")
-                .email("carlos@mail.com")
-                .phone("3003333333")
+                .email("maria.garcia@mail.com")
+                .phone("3107654321")
+                .passwordHash("hashed_password_456")
                 .role(UserRole.DRIVER)
                 .status(true)
-                .passwordHash("hash789")
-                .createdAt(OffsetDateTime.now())
+                .createdAt(now.minusDays(5))
                 .build();
 
-        // Create admin
-        admin = User.builder()
-                .name("Ana Martinez")
-                .email("ana@mail.com")
-                .phone("3004444444")
+        user3 = User.builder()
+                .name("Carlos Admin")
+                .email("carlos.admin@mail.com")
+                .phone("3009876543")
+                .passwordHash("hashed_password_789")
                 .role(UserRole.ADMIN)
-                .status(true)
-                .passwordHash("hashABC")
-                .createdAt(OffsetDateTime.now())
+                .status(false)
+                .createdAt(now.minusDays(3))
                 .build();
 
-        // Create inactive user
-        inactiveUser = User.builder()
-                .name("Pedro Lopez")
-                .email("pedro@mail.com")
-                .phone("3005555555")
-                .role(UserRole.PASSENGER)
-                .status(false)
-                .passwordHash("hashDEF")
-                .createdAt(OffsetDateTime.now().minusMonths(6))
+        user4 = User.builder()
+                .name("Ana Lopez")
+                .email("ana.lopez@mail.com")
+                .phone("3154445566")
+                .passwordHash("hashed_password_101")
+                .role(UserRole.CLERK)
+                .status(true)
+                .createdAt(now)
                 .build();
     }
 
@@ -86,55 +74,61 @@ public class UserRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("User: find by name")
     void shouldFindByName() {
         // Given
-        userRepository.save(passenger1);
+        userRepository.save(user1);
+        userRepository.save(user2);
 
         // When
         var result = userRepository.findByName("Juan Perez");
 
         // Then
         assertThat(result).isPresent();
-        assertThat(result.get().getEmail()).isEqualTo("juan@mail.com");
-    }
-
-    @Test
-    @DisplayName("User: find by phone")
-    void shouldFindByPhone() {
-        // Given
-        userRepository.save(driver1);
-
-        // When
-        var result = userRepository.findByPhone("3003333333");
-
-        // Then
-        assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Carlos Rodriguez");
-        assertThat(result.get().getRole()).isEqualTo(UserRole.DRIVER);
+        assertThat(result.get().getEmail()).isEqualTo("juan.perez@mail.com");
+        assertThat(result.get().getPhone()).isEqualTo("3001234567");
+        assertThat(result.get().getRole()).isEqualTo(UserRole.PASSENGER);
     }
 
     @Test
     @DisplayName("User: find by email")
     void shouldFindByEmail() {
         // Given
-        userRepository.save(admin);
+        userRepository.save(user1);
+        userRepository.save(user2);
 
         // When
-        var result = userRepository.findByEmail("ana@mail.com");
+        var result = userRepository.findByEmail("maria.garcia@mail.com");
 
         // Then
         assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Ana Martinez");
-        assertThat(result.get().getRole()).isEqualTo(UserRole.ADMIN);
+        assertThat(result.get().getName()).isEqualTo("Maria Garcia");
+        assertThat(result.get().getPhone()).isEqualTo("3107654321");
+        assertThat(result.get().getRole()).isEqualTo(UserRole.DRIVER);
+    }
+
+    @Test
+    @DisplayName("User: find by phone")
+    void shouldFindByPhone() {
+        // Given
+        userRepository.save(user1);
+        userRepository.save(user2);
+
+        // When
+        var result = userRepository.findByPhone("3107654321");
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getName()).isEqualTo("Maria Garcia");
+        assertThat(result.get().getEmail()).isEqualTo("maria.garcia@mail.com");
+        assertThat(result.get().getRole()).isEqualTo(UserRole.DRIVER);
     }
 
     @Test
     @DisplayName("User: find by role")
     void shouldFindByRole() {
         // Given
-        userRepository.save(passenger1);
-        userRepository.save(passenger2);
-        userRepository.save(driver1);
-        userRepository.save(admin);
-        userRepository.save(inactiveUser);
+        userRepository.save(user1);
+        userRepository.save(user2);
+        userRepository.save(user3);
+        userRepository.save(user4);
 
         // When
         var passengers = userRepository.findByRole(UserRole.PASSENGER);
@@ -142,70 +136,68 @@ public class UserRepositoryTest extends AbstractRepositoryIT {
         var admins = userRepository.findByRole(UserRole.ADMIN);
 
         // Then
-        assertThat(passengers).hasSize(3); // Including inactive passenger
-        assertThat(drivers).hasSize(1);
-        assertThat(admins).hasSize(1);
+        assertThat(passengers).hasSize(1);
+        assertThat(passengers.get(0).getName()).isEqualTo("Juan Perez");
 
-        assertThat(passengers)
-                .extracting(User::getName)
-                .containsExactlyInAnyOrder("Juan Perez", "Maria Garcia", "Pedro Lopez");
+        assertThat(drivers).hasSize(1);
+        assertThat(drivers.get(0).getName()).isEqualTo("Maria Garcia");
+
+        assertThat(admins).hasSize(1);
+        assertThat(admins.get(0).getName()).isEqualTo("Carlos Admin");
     }
 
     @Test
-    @DisplayName("User: find by status")
+    @DisplayName("User: find by status with pagination")
     void shouldFindByStatus() {
         // Given
-        userRepository.save(passenger1);
-        userRepository.save(passenger2);
-        userRepository.save(driver1);
-        userRepository.save(admin);
-        userRepository.save(inactiveUser);
+        userRepository.save(user1);
+        userRepository.save(user2);
+        userRepository.save(user3);
+        userRepository.save(user4);
 
-        // When - active users
+        // When
         var activeUsers = userRepository.findByStatus(true, PageRequest.of(0, 10));
-
-        // When - inactive users
         var inactiveUsers = userRepository.findByStatus(false, PageRequest.of(0, 10));
 
         // Then
-        assertThat(activeUsers.getContent()).hasSize(4);
+        assertThat(activeUsers.getContent()).hasSize(3);
+        assertThat(activeUsers.getContent())
+                .extracting(User::getName)
+                .containsExactlyInAnyOrder("Juan Perez", "Maria Garcia", "Ana Lopez");
+
         assertThat(inactiveUsers.getContent()).hasSize(1);
-        assertThat(inactiveUsers.getContent().get(0).getName()).isEqualTo("Pedro Lopez");
+        assertThat(inactiveUsers.getContent().get(0).getName()).isEqualTo("Carlos Admin");
     }
 
     @Test
     @DisplayName("User: find by role and status")
     void shouldFindByRoleAndStatus() {
         // Given
-        userRepository.save(passenger1);
-        userRepository.save(passenger2);
-        userRepository.save(driver1);
-        userRepository.save(inactiveUser);
+        userRepository.save(user1);
+        userRepository.save(user2);
+        userRepository.save(user3);
+        userRepository.save(user4);
 
-        // When - active passengers only
+        // When
         var activePassengers = userRepository.findByRoleAndStatus(UserRole.PASSENGER, true);
-
-        // When - inactive passengers only
-        var inactivePassengers = userRepository.findByRoleAndStatus(UserRole.PASSENGER, false);
+        var inactiveAdmins = userRepository.findByRoleAndStatus(UserRole.ADMIN, false);
 
         // Then
-        assertThat(activePassengers).hasSize(2);
-        assertThat(activePassengers)
-                .extracting(User::getName)
-                .containsExactlyInAnyOrder("Juan Perez", "Maria Garcia");
+        assertThat(activePassengers).hasSize(1);
+        assertThat(activePassengers.get(0).getName()).isEqualTo("Juan Perez");
 
-        assertThat(inactivePassengers).hasSize(1);
-        assertThat(inactivePassengers.get(0).getName()).isEqualTo("Pedro Lopez");
+        assertThat(inactiveAdmins).hasSize(1);
+        assertThat(inactiveAdmins.get(0).getName()).isEqualTo("Carlos Admin");
     }
 
     @Test
     @DisplayName("User: return empty when name not found")
     void shouldReturnEmptyWhenNameNotFound() {
         // Given
-        userRepository.save(passenger1);
+        userRepository.save(user1);
 
         // When
-        var result = userRepository.findByName("Nonexistent User");
+        var result = userRepository.findByName("Pedro Sanchez");
 
         // Then
         assertThat(result).isEmpty();
@@ -215,10 +207,10 @@ public class UserRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("User: return empty when email not found")
     void shouldReturnEmptyWhenEmailNotFound() {
         // Given
-        userRepository.save(passenger1);
+        userRepository.save(user1);
 
         // When
-        var result = userRepository.findByEmail("nonexistent@mail.com");
+        var result = userRepository.findByEmail("notfound@mail.com");
 
         // Then
         assertThat(result).isEmpty();
@@ -228,12 +220,83 @@ public class UserRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("User: return empty when phone not found")
     void shouldReturnEmptyWhenPhoneNotFound() {
         // Given
-        userRepository.save(passenger1);
+        userRepository.save(user1);
 
         // When
-        var result = userRepository.findByPhone("9999999999");
+        var result = userRepository.findByPhone("3009999999");
 
         // Then
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("User: return empty list when role has no users")
+    void shouldReturnEmptyWhenRoleHasNoUsers() {
+        // Given
+        userRepository.save(user1);
+
+        // When
+        var result = userRepository.findByRole(UserRole.DISPATCHER);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("User: return empty page when status has no users")
+    void shouldReturnEmptyPageWhenStatusHasNoUsers() {
+        // Given
+        userRepository.save(user1);
+        userRepository.save(user2);
+
+        // When - all users are active
+        var result = userRepository.findByStatus(false, PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("User: return empty list when role and status combination not found")
+    void shouldReturnEmptyWhenRoleAndStatusNotMatch() {
+        // Given
+        userRepository.save(user1);
+        userRepository.save(user2);
+
+        // When
+        var result = userRepository.findByRoleAndStatus(UserRole.ADMIN, true);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("User: verify password hash is stored")
+    void shouldVerifyPasswordHashIsStored() {
+        // Given
+        userRepository.save(user1);
+
+        // When
+        var result = userRepository.findByEmail("juan.perez@mail.com");
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getPasswordHash()).isEqualTo("hashed_password_123");
+    }
+
+    @Test
+    @DisplayName("User: verify created at timestamp")
+    void shouldVerifyCreatedAtTimestamp() {
+        // Given
+        OffsetDateTime now = OffsetDateTime.now();
+        userRepository.save(user1);
+
+        // When
+        var result = userRepository.findByEmail("juan.perez@mail.com");
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getCreatedAt()).isNotNull();
+        assertThat(result.get().getCreatedAt()).isBefore(now);
     }
 }

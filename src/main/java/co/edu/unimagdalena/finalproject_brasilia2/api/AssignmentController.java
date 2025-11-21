@@ -6,90 +6,58 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
-@RequestMapping("/api/assignments")
+@RequestMapping("/api/v1/assignments")
 @RequiredArgsConstructor
+@Validated
 public class AssignmentController {
 
-    private final AssignmentService assignmentService;
+    private final AssignmentService service;
 
-    /**
-     * Create new assignment (assign driver/dispatcher to trip)
-     * POST /api/assignments
-     */
     @PostMapping
-    public ResponseEntity<AssignmentResponse> create(@Valid @RequestBody AssignmentCreateRequest request) {
-        AssignmentResponse response = assignmentService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<AssignmentResponse> create(@Valid @RequestBody AssignmentCreateRequest req,
+                                                      UriComponentsBuilder uriBuilder) {
+        var assignmentCreated = service.create(req);
+        var location = uriBuilder.path("/api/v1/assignments/{id}").buildAndExpand(assignmentCreated.id()).toUri();
+        return ResponseEntity.created(location).body(assignmentCreated);
     }
 
-    /**
-     * Update assignment
-     * PUT /api/assignments/{id}
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<AssignmentResponse> update(
-            @PathVariable Long id,
-            @Valid @RequestBody AssignmentUpdateRequest request) {
-        AssignmentResponse response = assignmentService.update(id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get assignment by ID
-     * GET /api/assignments/{id}
-     */
     @GetMapping("/{id}")
     public ResponseEntity<AssignmentResponse> get(@PathVariable Long id) {
-        AssignmentResponse response = assignmentService.get(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.get(id));
     }
 
-    /**
-     * Delete assignment
-     * DELETE /api/assignments/{id}
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        assignmentService.delete(id);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/by-trip/{tripId}")
+    public ResponseEntity<Page<AssignmentResponse>> getByTrip(@PathVariable Long tripId,
+                                                               Pageable pageable) {
+        return ResponseEntity.ok(service.getByTripId(tripId, pageable));
     }
 
-    /**
-     * Approve checklist for assignment
-     * POST /api/assignments/{id}/approve-checklist
-     */
+    @GetMapping("/by-driver/{driverId}")
+    public ResponseEntity<Page<AssignmentResponse>> getByDriver(@PathVariable Long driverId,
+                                                                 Pageable pageable) {
+        return ResponseEntity.ok(service.getByDriverId(driverId, pageable));
+    }
+
     @PostMapping("/{id}/approve-checklist")
     public ResponseEntity<AssignmentResponse> approveChecklist(@PathVariable Long id) {
-        AssignmentResponse response = assignmentService.approveChecklist(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.approveChecklist(id));
     }
 
-    /**
-     * Get assignments by trip ID
-     * GET /api/assignments/trip/{tripId}
-     */
-    @GetMapping("/trip/{tripId}")
-    public ResponseEntity<Page<AssignmentResponse>> getByTrip(
-            @PathVariable Long tripId,
-            Pageable pageable) {
-        Page<AssignmentResponse> page = assignmentService.getByTripId(tripId, pageable);
-        return ResponseEntity.ok(page);
+    @PatchMapping("/{id}")
+    public ResponseEntity<AssignmentResponse> update(@PathVariable Long id,
+                                                      @Valid @RequestBody AssignmentUpdateRequest req) {
+        return ResponseEntity.ok(service.update(id, req));
     }
 
-    /**
-     * Get assignments by driver ID
-     * GET /api/assignments/driver/{driverId}
-     */
-    @GetMapping("/driver/{driverId}")
-    public ResponseEntity<Page<AssignmentResponse>> getByDriver(
-            @PathVariable Long driverId,
-            Pageable pageable) {
-        Page<AssignmentResponse> page = assignmentService.getByDriverId(driverId, pageable);
-        return ResponseEntity.ok(page);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

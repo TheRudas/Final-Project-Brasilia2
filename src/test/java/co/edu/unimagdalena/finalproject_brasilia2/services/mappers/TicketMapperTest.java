@@ -17,12 +17,13 @@ class TicketMapperTest {
     @Test
     void toEntity_shouldMapCreateRequest() {
         var req = new TicketCreateRequest(1L, 2L, "A5", 3L, 4L,
-                new BigDecimal("50000.00"), PaymentMethod.CARD);
+                new BigDecimal("50000.00"), PaymentMethod.CARD, PassengerType.ADULT);
         Ticket entity = mapper.toEntity(req);
 
         assertThat(entity.getSeatNumber()).isEqualTo("A5");
         assertThat(entity.getPrice()).isEqualByComparingTo(new BigDecimal("50000.00"));
         assertThat(entity.getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
+        assertThat(entity.getPassengerType()).isEqualTo(PassengerType.ADULT);
     }
 
     @Test
@@ -38,6 +39,7 @@ class TicketMapperTest {
                 .id(20L).trip(trip).passenger(passenger)
                 .seatNumber("B3").fromStop(fromStop).toStop(toStop)
                 .price(new BigDecimal("45000.00")).paymentMethod(PaymentMethod.CASH)
+                .passengerType(PassengerType.CHILD)
                 .status(TicketStatus.SOLD).qrCode("QR-XYZ789").build();
 
         TicketResponse dto = mapper.toResponse(t);
@@ -48,13 +50,14 @@ class TicketMapperTest {
         assertThat(dto.passengerName()).isEqualTo("Carlos Ruiz");
         assertThat(dto.busPlate()).isEqualTo("ABC123");
         assertThat(dto.seatNumber()).isEqualTo("B3");
+        assertThat(dto.passengerType()).isEqualTo(PassengerType.CHILD);
     }
 
     @Test
     void patch_shouldIgnoreNulls() {
         var entity = Ticket.builder().id(1L).seatNumber("A1")
                 .price(new BigDecimal("50000.00")).paymentMethod(PaymentMethod.CARD)
-                .status(TicketStatus.SOLD).build();
+                .status(TicketStatus.SOLD).passengerType(PassengerType.CHILD).build();
         var changes = new TicketUpdateRequest(null, new BigDecimal("55000.00"),
                 null, TicketStatus.CANCELLED);
 

@@ -4,76 +4,53 @@ import co.edu.unimagdalena.finalproject_brasilia2.api.dto.SeatHoldDtos.*;
 import co.edu.unimagdalena.finalproject_brasilia2.services.SeatHoldService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/seat-holds")
+@RequestMapping("/api/v1/seat-holds")
 @RequiredArgsConstructor
+@Validated
 public class SeatHoldController {
 
-    private final SeatHoldService seatHoldService;
+    private final SeatHoldService service;
 
-    /**
-     * Create (hold) a seat
-     * POST /api/seat-holds
-     */
     @PostMapping
-    public ResponseEntity<SeatHoldResponse> create(@Valid @RequestBody SeatHoldCreateRequest request) {
-        SeatHoldResponse response = seatHoldService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<SeatHoldResponse> create(@Valid @RequestBody SeatHoldCreateRequest req,
+                                                    UriComponentsBuilder uriBuilder) {
+        var seatHoldCreated = service.create(req);
+        var location = uriBuilder.path("/api/v1/seat-holds/{id}").buildAndExpand(seatHoldCreated.id()).toUri();
+        return ResponseEntity.created(location).body(seatHoldCreated);
     }
 
-    /**
-     * Get seat hold by ID
-     * GET /api/seat-holds/{id}
-     */
     @GetMapping("/{id}")
     public ResponseEntity<SeatHoldResponse> get(@PathVariable Long id) {
-        SeatHoldResponse response = seatHoldService.get(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.get(id));
     }
 
-    /**
-     * List seat holds by trip
-     * GET /api/seat-holds/trip/{tripId}
-     */
-    @GetMapping("/trip/{tripId}")
+    @GetMapping("/by-trip/{tripId}")
     public ResponseEntity<List<SeatHoldResponse>> listByTrip(@PathVariable Long tripId) {
-        List<SeatHoldResponse> holds = seatHoldService.listByTripId(tripId);
-        return ResponseEntity.ok(holds);
+        return ResponseEntity.ok(service.listByTripId(tripId));
     }
 
-    /**
-     * List seat holds by user
-     * GET /api/seat-holds/user/{userId}
-     */
-    @GetMapping("/user/{userId}")
+    @GetMapping("/by-user/{userId}")
     public ResponseEntity<List<SeatHoldResponse>> listByUser(@PathVariable Long userId) {
-        List<SeatHoldResponse> holds = seatHoldService.listByUserId(userId);
-        return ResponseEntity.ok(holds);
+        return ResponseEntity.ok(service.listByUserId(userId));
     }
 
-    /**
-     * Expire a specific seat hold
-     * POST /api/seat-holds/{id}/expire
-     */
     @PostMapping("/{id}/expire")
     public ResponseEntity<Void> expire(@PathVariable Long id) {
-        seatHoldService.expire(id);
-        return ResponseEntity.ok().build();
+        service.expire(id);
+        return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Expire all expired seat holds (manual trigger)
-     * POST /api/seat-holds/expire-all
-     */
     @PostMapping("/expire-all")
     public ResponseEntity<Void> expireAll() {
-        seatHoldService.expireAll();
-        return ResponseEntity.ok().build();
+        service.expireAll();
+        return ResponseEntity.noContent().build();
     }
 }

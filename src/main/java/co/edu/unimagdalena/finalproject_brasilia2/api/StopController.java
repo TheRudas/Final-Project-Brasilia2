@@ -4,112 +4,71 @@ import co.edu.unimagdalena.finalproject_brasilia2.api.dto.StopDtos.*;
 import co.edu.unimagdalena.finalproject_brasilia2.services.StopService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/stops")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Validated
 public class StopController {
 
-    private final StopService stopService;
+    private final StopService service;
 
-    /**
-     * Create a new stop
-     * POST /api/stops
-     */
-    @PostMapping
-    public ResponseEntity<StopResponse> create(@Valid @RequestBody StopCreateRequest request) {
-        StopResponse response = stopService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @PostMapping("/routes/{routeId}/stops")
+    public ResponseEntity<StopResponse> create(@PathVariable Long routeId,
+                                                @Valid @RequestBody StopCreateRequest req,
+                                                UriComponentsBuilder uriBuilder) {
+        var stopCreated = service.create(req);
+        var location = uriBuilder.path("/api/v1/stops/{id}").buildAndExpand(stopCreated.id()).toUri();
+        return ResponseEntity.created(location).body(stopCreated);
     }
 
-    /**
-     * Update stop
-     * PUT /api/stops/{id}
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<StopResponse> update(
-            @PathVariable Long id,
-            @Valid @RequestBody StopUpdateRequest request) {
-        StopResponse response = stopService.update(id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get stop by ID
-     * GET /api/stops/{id}
-     */
-    @GetMapping("/{id}")
+    @GetMapping("/stops/{id}")
     public ResponseEntity<StopResponse> get(@PathVariable Long id) {
-        StopResponse response = stopService.get(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(service.get(id));
     }
 
-    /**
-     * Delete stop
-     * DELETE /api/stops/{id}
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        stopService.delete(id);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/stops/by-name")
+    public ResponseEntity<StopResponse> getByName(@RequestParam String name) {
+        return ResponseEntity.ok(service.getByNameIgnoreCase(name));
     }
 
-    /**
-     * Get stop by name (case insensitive)
-     * GET /api/stops/name/{name}
-     */
-    @GetMapping("/name/{name}")
-    public ResponseEntity<StopResponse> getByName(@PathVariable String name) {
-        StopResponse response = stopService.getByNameIgnoreCase(name);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * List stops by route
-     * GET /api/stops/route/{routeId}
-     */
-    @GetMapping("/route/{routeId}")
+    @GetMapping("/routes/{routeId}/stops")
     public ResponseEntity<List<StopResponse>> listByRoute(@PathVariable Long routeId) {
-        List<StopResponse> stops = stopService.listByRouteId(routeId);
-        return ResponseEntity.ok(stops);
+        return ResponseEntity.ok(service.listByRouteId(routeId));
     }
 
-    /**
-     * List stops by route ordered by sequence
-     * GET /api/stops/route/{routeId}/ordered
-     */
-    @GetMapping("/route/{routeId}/ordered")
+    @GetMapping("/routes/{routeId}/stops/ordered")
     public ResponseEntity<List<StopResponse>> listByRouteOrdered(@PathVariable Long routeId) {
-        List<StopResponse> stops = stopService.listByRouteIdOrderByOrderAsc(routeId);
-        return ResponseEntity.ok(stops);
+        return ResponseEntity.ok(service.listByRouteIdOrderByOrderAsc(routeId));
     }
 
-    /**
-     * Get stop by route and name
-     * GET /api/stops/route/{routeId}/name/{name}
-     */
-    @GetMapping("/route/{routeId}/name/{name}")
-    public ResponseEntity<StopResponse> getByRouteAndName(
-            @PathVariable Long routeId,
-            @PathVariable String name) {
-        StopResponse response = stopService.getByRouteIdAndNameIgnoreCase(routeId, name);
-        return ResponseEntity.ok(response);
+    @GetMapping("/routes/{routeId}/stops/by-name")
+    public ResponseEntity<StopResponse> getByRouteAndName(@PathVariable Long routeId,
+                                                           @RequestParam String name) {
+        return ResponseEntity.ok(service.getByRouteIdAndNameIgnoreCase(routeId, name));
     }
 
-    /**
-     * Get stop by route and order
-     * GET /api/stops/route/{routeId}/order/{order}
-     */
-    @GetMapping("/route/{routeId}/order/{order}")
-    public ResponseEntity<StopResponse> getByRouteAndOrder(
-            @PathVariable Long routeId,
-            @PathVariable Integer order) {
-        StopResponse response = stopService.getByRouteIdAndOrder(routeId, order);
-        return ResponseEntity.ok(response);
+    @GetMapping("/routes/{routeId}/stops/by-order/{order}")
+    public ResponseEntity<StopResponse> getByRouteAndOrder(@PathVariable Long routeId,
+                                                            @PathVariable Integer order) {
+        return ResponseEntity.ok(service.getByRouteIdAndOrder(routeId, order));
+    }
+
+    @PatchMapping("/stops/{id}")
+    public ResponseEntity<StopResponse> update(@PathVariable Long id,
+                                                @Valid @RequestBody StopUpdateRequest req) {
+        return ResponseEntity.ok(service.update(id, req));
+    }
+
+    @DeleteMapping("/stops/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
