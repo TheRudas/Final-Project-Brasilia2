@@ -92,4 +92,5 @@ public class AssignmentController {
         Page<AssignmentResponse> page = assignmentService.getByDriverId(driverId, pageable);
         return ResponseEntity.ok(page);
     }
+
 }

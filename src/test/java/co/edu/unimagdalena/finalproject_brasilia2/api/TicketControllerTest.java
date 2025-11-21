@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(TicketController.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Ticket Controller Tests")
-class TicketControllerTest {
+class TicketControllerTest extends BaseTest{
 
     @Autowired
     private MockMvc mockMvc;
