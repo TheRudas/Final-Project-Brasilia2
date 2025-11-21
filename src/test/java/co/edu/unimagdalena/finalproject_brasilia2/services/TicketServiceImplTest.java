@@ -53,6 +53,9 @@ class TicketServiceImplTest {
     @Mock
     private FareRuleService fareRuleService;
 
+    @Mock
+    private NotificationService notificationService;
+
     @Spy
     private TicketMapper mapper = Mappers.getMapper(TicketMapper.class);
 
@@ -143,6 +146,14 @@ class TicketServiceImplTest {
         verify(seatRepository).findByBusIdAndNumber(bus.getId(), "A1");
         verify(ticketRepository).existsOverlappingTicket(1L, "A1", 1, 5);
         verify(ticketRepository).save(any(Ticket.class));
+        verify(notificationService).sendTicketConfirmation(
+                eq("3001234567"),
+                eq("Juan Perez"),
+                eq(10L),
+                eq("A1"),
+                anyString(), // QR code
+                eq("Bogota-Medellin")
+        );
     }
 
     @Test
@@ -1073,6 +1084,13 @@ class TicketServiceImplTest {
         verify(ticketRepository).findById(10L);
         verify(configService).getValue("REFUND_24H_PERCENT");
         verify(ticketRepository).save(any(Ticket.class));
+        verify(notificationService).sendTicketCancellation(
+                eq("3001234567"),
+                eq("Juan Perez"),
+                eq(10L),
+                any(BigDecimal.class),
+                eq(PaymentMethod.CARD)
+        );
     }
 
     @Test

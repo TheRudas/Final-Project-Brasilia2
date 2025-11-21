@@ -12,6 +12,7 @@ import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.StopReposi
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.ConfigService;
+import co.edu.unimagdalena.finalproject_brasilia2.services.NotificationService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.ParcelService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.ParcelMapper;
 
@@ -37,6 +38,7 @@ public class ParcelServiceImpl implements ParcelService {
     private final IncidentRepository incidentRepository;
     private final ParcelMapper mapper;
     private final ConfigService configService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -64,11 +66,14 @@ public class ParcelServiceImpl implements ParcelService {
             );
         }
 
+
         parcel.setFromStop(fromStop);
         parcel.setToStop(toStop);
 
 
         parcel.setCode(generateUniqueParcelCode());
+
+
 
 
         BigDecimal dynamicPrice = calculateParcelPrice(fromStop, toStop);
@@ -79,6 +84,7 @@ public class ParcelServiceImpl implements ParcelService {
 
         Parcel saved = repository.save(parcel);
 
+        notificationService.sendParcelCreated(parcel.getReceiverPhone(), parcel.getReceiverName(), parcel.getCode());
 
         return mapper.toResponse(saved);
     }
@@ -231,7 +237,16 @@ public class ParcelServiceImpl implements ParcelService {
 
         log.info("Parcel assigned to trip: ParcelID={}, TripID={}", parcelId, tripId);
 
-        return mapper.toResponse(repository.save(parcel));
+        Parcel transitParcel = repository.save(parcel);
+
+        // Send in-transit notification to receiver
+        notificationService.sendParcelInTransit(
+                transitParcel.getReceiverPhone(),
+                transitParcel.getReceiverName(),
+                transitParcel.getCode()
+        );
+
+        return mapper.toResponse(transitParcel);
     }
 
     @Override
@@ -319,7 +334,7 @@ public class ParcelServiceImpl implements ParcelService {
 
     /**
      * Calculate dynamic price based on distance between stops
-     * Base price per stop: $2.50
+     * Base price per stop: CONFIG
      */
     private BigDecimal calculateParcelPrice(co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop fromStop,
                                            co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop toStop) {

@@ -9,6 +9,7 @@ import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.ConfigService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.FareRuleService;
+import co.edu.unimagdalena.finalproject_brasilia2.services.NotificationService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.TicketService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TicketMapper;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,8 @@ public class TicketServiceImpl implements TicketService {
     private final ConfigService configService;
     private final SeatHoldRepository seatHoldRepository;
     private final FareRuleService fareRuleService;
+    private final NotificationService notificationService;
+
 
     @Override
     @Transactional
@@ -226,7 +229,18 @@ public class TicketServiceImpl implements TicketService {
         ticket.setRefundAmount(refundAmount);
 
         ticket.setStatus(TicketStatus.CANCELLED);
-        return mapper.toResponse(ticketRepository.save(ticket));
+        Ticket cancelledTicket = ticketRepository.save(ticket);
+
+        // Send cancellation notification
+        notificationService.sendTicketCancellation(
+                ticket.getPassenger().getPhone(),
+                ticket.getPassenger().getName(),
+                ticket.getId(),
+                refundAmount,
+                ticket.getPaymentMethod()
+        );
+
+        return mapper.toResponse(cancelledTicket);
     }
 
     @Override
