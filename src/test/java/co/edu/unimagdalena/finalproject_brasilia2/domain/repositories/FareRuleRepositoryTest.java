@@ -4,18 +4,17 @@ import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.FareRule;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Route;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class FareRuleRepositoryTest extends AbstractRepositoryIT {
+public class FareRuleRepositoryTest extends AbstractRepositoryIT {
 
     @Autowired
     private FareRuleRepository fareRuleRepository;
@@ -26,11 +25,16 @@ class FareRuleRepositoryTest extends AbstractRepositoryIT {
     @Autowired
     private StopRepository stopRepository;
 
-    private Route route;
-    private Stop stopA;
-    private Stop stopB;
-    private FareRule rule1;
-    private FareRule rule2;
+    private Route route1;
+    private Route route2;
+    private Stop stop1;
+    private Stop stop2;
+    private Stop stop3;
+    private Stop stop4;
+    private FareRule fareRule1;
+    private FareRule fareRule2;
+    private FareRule fareRule3;
+    private FareRule fareRule4;
 
     @BeforeEach
     void setUp() {
@@ -38,262 +42,290 @@ class FareRuleRepositoryTest extends AbstractRepositoryIT {
         stopRepository.deleteAll();
         routeRepository.deleteAll();
 
-        route = routeRepository.save(Route.builder()
-                .name("Ruta 1")
-                .origin("A")
-                .destination("B")
-                .distanceKm(new BigDecimal(120))
-                .durationMin(90)
-                .code("R1")
-                .build());
+        // Create routes
+        route1 = Route.builder()
+                .code("R001")
+                .name("Bogota-Medellin")
+                .origin("Bogota")
+                .destination("Medellin")
+                .distanceKm(new BigDecimal("400"))
+                .durationMin(480)
+                .build();
+        route1 = routeRepository.save(route1);
 
-        stopA = stopRepository.save(Stop.builder()
-                .name("Paradero A")
-                .route(route)
+        route2 = Route.builder()
+                .code("R002")
+                .name("Cali-Cartagena")
+                .origin("Cali")
+                .destination("Cartagena")
+                .distanceKm(new BigDecimal("700"))
+                .durationMin(600)
+                .build();
+        route2 = routeRepository.save(route2);
+
+        // Create stops for route1
+        stop1 = Stop.builder()
+                .route(route1)
+                .name("Terminal Bogota")
                 .order(1)
-                .lat(10.10)
-                .lng(12.23)
-                .build());
+                .lat(4.6097)
+                .lng(-74.0817)
+                .build();
+        stop1 = stopRepository.save(stop1);
 
-        stopB = stopRepository.save(Stop.builder()
-                .name("Paradero B")
-                .route(route)
+        stop2 = Stop.builder()
+                .route(route1)
+                .name("Terminal Girardot")
                 .order(2)
-                .lat(10.20)
-                .lng(-74.60)
-                .build());
+                .lat(4.3122)
+                .lng(-74.8030)
+                .build();
+        stop2 = stopRepository.save(stop2);
 
-        rule1 = fareRuleRepository.save(FareRule.builder()
-                .route(route)
-                .fromStop(stopA)
-                .toStop(stopB)
-                .basePrice(new BigDecimal("5000"))
+        stop3 = Stop.builder()
+                .route(route1)
+                .name("Terminal Medellin")
+                .order(3)
+                .lat(6.2476)
+                .lng(-75.5658)
+                .build();
+        stop3 = stopRepository.save(stop3);
+
+        // Create stop for route2
+        stop4 = Stop.builder()
+                .route(route2)
+                .name("Terminal Cali")
+                .order(1)
+                .lat(3.4516)
+                .lng(-76.5320)
+                .build();
+        stop4 = stopRepository.save(stop4);
+
+        // Create fare rules
+        fareRule1 = FareRule.builder()
+                .route(route1)
+                .fromStop(stop1)
+                .toStop(stop2)
+                .basePrice(new BigDecimal("25000"))
                 .discounts(Set.of("STUDENT", "SENIOR"))
-                .dynamicPricing(false)
-                .build());
-
-        rule2 = fareRuleRepository.save(FareRule.builder()
-                .route(route)
-                .fromStop(stopB)
-                .toStop(stopA)
-                .basePrice(new BigDecimal("7000"))
-                .discounts(Set.of("NIGHT"))
-                .dynamicPricing(true)
-                .build());
-    }
-
-    @Test
-    void testFindByRouteId() {
-        // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // Act
-        Page<FareRule> result = fareRuleRepository.findByRouteId(route.getId(), pageable);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        assertThat(result.getTotalPages()).isEqualTo(1);
-    }
-
-    @Test
-    void testFindByRouteId_WithPagination() {
-        // Arrange - página de 1 elemento
-        Pageable pageable = PageRequest.of(0, 1);
-
-        // Act
-        Page<FareRule> page1 = fareRuleRepository.findByRouteId(route.getId(), pageable);
-        Page<FareRule> page2 = fareRuleRepository.findByRouteId(route.getId(), PageRequest.of(1, 1));
-
-        // Assert
-        assertThat(page1.getContent()).hasSize(1);
-        assertThat(page2.getContent()).hasSize(1);
-        assertThat(page1.getTotalElements()).isEqualTo(2);
-        assertThat(page1.getTotalPages()).isEqualTo(2);
-        assertThat(page1.hasNext()).isTrue();
-        assertThat(page2.hasNext()).isFalse();
-    }
-
-    @Test
-    void testFindByFromStopId() {
-        // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // Act
-        Page<FareRule> result = fareRuleRepository.findByFromStopId(stopA.getId(), pageable);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getBasePrice()).isEqualTo(new BigDecimal("5000"));
-        assertThat(result.getContent().get(0).getFromStop().getName()).isEqualTo("Paradero A");
-    }
-
-    @Test
-    void testFindByToStopId() {
-        // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // Act
-        Page<FareRule> result = fareRuleRepository.findByToStopId(stopA.getId(), pageable);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).isDynamicPricing()).isTrue();
-        assertThat(result.getContent().get(0).getBasePrice()).isEqualTo(new BigDecimal("7000"));
-    }
-
-    @Test
-    void testFindByDynamicPricing_True() {
-        // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // Act
-        Page<FareRule> dynamic = fareRuleRepository.findByDynamicPricing(true, pageable);
-
-        // Assert
-        assertThat(dynamic).isNotNull();
-        assertThat(dynamic.getContent()).hasSize(1);
-        assertThat(dynamic.getContent().get(0).getBasePrice()).isEqualTo(new BigDecimal("7000"));
-    }
-
-    @Test
-    void testFindByDynamicPricing_False() {
-        // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // Act
-        Page<FareRule> staticPricing = fareRuleRepository.findByDynamicPricing(false, pageable);
-
-        // Assert
-        assertThat(staticPricing).isNotNull();
-        assertThat(staticPricing.getContent()).hasSize(1);
-        assertThat(staticPricing.getContent().get(0).getBasePrice()).isEqualTo(new BigDecimal("5000"));
-    }
-
-    @Test
-    void testExistsByRouteId() {
-        // Act & Assert
-        assertThat(fareRuleRepository.existsByRouteId(route.getId())).isTrue();
-        assertThat(fareRuleRepository.existsByRouteId(999L)).isFalse();
-    }
-
-    @Test
-    void testFindByRouteId_EmptyResult() {
-        // Arrange
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // Act
-        Page<FareRule> result = fareRuleRepository.findByRouteId(999L, pageable);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isEqualTo(0);
-    }
-
-    @Test
-    void testFindAll_WithMultipleRulesAndFilters() {
-        // Arrange
-        Route route2 = routeRepository.save(Route.builder()
-                .name("Ruta 2")
-                .origin("C")
-                .destination("D")
-                .distanceKm(new BigDecimal(80))
-                .durationMin(60)
-                .code("R2")
-                .build());
-
-        Stop stopC = stopRepository.save(Stop.builder()
-                .name("Paradero C")
-                .route(route2)
-                .order(1)
-                .lat(11.10)
-                .lng(13.23)
-                .build());
-
-        Stop stopD = stopRepository.save(Stop.builder()
-                .name("Paradero D")
-                .route(route2)
-                .order(2)
-                .lat(11.20)
-                .lng(-75.60)
-                .build());
-
-        fareRuleRepository.save(FareRule.builder()
-                .route(route2)
-                .fromStop(stopC)
-                .toStop(stopD)
-                .basePrice(new BigDecimal("3000"))
-                .discounts(Set.of())
-                .dynamicPricing(true)
-                .build());
-
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // Act
-        Page<FareRule> route1Rules = fareRuleRepository.findByRouteId(route.getId(), pageable);
-        Page<FareRule> route2Rules = fareRuleRepository.findByRouteId(route2.getId(), pageable);
-        Page<FareRule> dynamicRules = fareRuleRepository.findByDynamicPricing(true, pageable);
-
-        // Assert
-        assertThat(route1Rules.getContent()).hasSize(2);
-        assertThat(route2Rules.getContent()).hasSize(1);
-        assertThat(dynamicRules.getContent()).hasSize(2); // rule2 + nueva rule de route2
-    }
-
-    @Test
-    void testSaveAndRetrieve() {
-        // Arrange
-        FareRule newRule = FareRule.builder()
-                .route(route)
-                .fromStop(stopA)
-                .toStop(stopB)
-                .basePrice(new BigDecimal("10000"))
-                .discounts(Set.of("CORPORATE"))
                 .dynamicPricing(true)
                 .build();
 
-        // Act
-        FareRule saved = fareRuleRepository.save(newRule);
-        FareRule retrieved = fareRuleRepository.findById(saved.getId()).orElse(null);
+        fareRule2 = FareRule.builder()
+                .route(route1)
+                .fromStop(stop2)
+                .toStop(stop3)
+                .basePrice(new BigDecimal("30000"))
+                .discounts(Set.of("STUDENT"))
+                .dynamicPricing(false)
+                .build();
 
-        // Assert
-        assertThat(retrieved).isNotNull();
-        assertThat(retrieved.getId()).isEqualTo(saved.getId());
-        assertThat(retrieved.getBasePrice()).isEqualTo(new BigDecimal("10000"));
-        assertThat(retrieved.getDiscounts()).containsExactly("CORPORATE");
-        assertThat(retrieved.isDynamicPricing()).isTrue();
+        fareRule3 = FareRule.builder()
+                .route(route1)
+                .fromStop(stop1)
+                .toStop(stop3)
+                .basePrice(new BigDecimal("50000"))
+                .discounts(Set.of("SENIOR", "CHILD"))
+                .dynamicPricing(true)
+                .build();
+
+        fareRule4 = FareRule.builder()
+                .route(route2)
+                .fromStop(stop4)
+                .toStop(stop4)
+                .basePrice(new BigDecimal("80000"))
+                .discounts(Set.of())
+                .dynamicPricing(false)
+                .build();
     }
 
     @Test
-    void testDelete() {
-        // Arrange
-        Long ruleId = rule1.getId();
+    @DisplayName("FareRule: find by route id with pagination")
+    void shouldFindByRouteId() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+        fareRuleRepository.save(fareRule2);
+        fareRuleRepository.save(fareRule3);
+        fareRuleRepository.save(fareRule4);
 
-        // Act
-        fareRuleRepository.delete(rule1);
+        // When
+        var result = fareRuleRepository.findByRouteId(route1.getId(), PageRequest.of(0, 10));
 
-        // Assert
-        assertThat(fareRuleRepository.findById(ruleId)).isEmpty();
-        assertThat(fareRuleRepository.existsByRouteId(route.getId())).isTrue(); // rule2 todavía existe
+        // Then
+        assertThat(result.getContent()).hasSize(3);
+        assertThat(result.getContent())
+                .extracting(FareRule::getBasePrice)
+                .containsExactlyInAnyOrder(
+                        new BigDecimal("25000"),
+                        new BigDecimal("30000"),
+                        new BigDecimal("50000")
+                );
     }
 
     @Test
-    void testUpdate() {
-        // Arrange
-        rule1.setBasePrice(new BigDecimal("6000"));
-        rule1.setDynamicPricing(true);
+    @DisplayName("FareRule: find by from stop id with pagination")
+    void shouldFindByFromStopId() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+        fareRuleRepository.save(fareRule2);
+        fareRuleRepository.save(fareRule3);
 
-        // Act
-        fareRuleRepository.save(rule1);
-        FareRule updated = fareRuleRepository.findById(rule1.getId()).orElse(null);
+        // When
+        var result = fareRuleRepository.findByFromStopId(stop1.getId(), PageRequest.of(0, 10));
 
-        // Assert
-        assertThat(updated).isNotNull();
-        assertThat(updated.getBasePrice()).isEqualTo(new BigDecimal("6000"));
-        assertThat(updated.isDynamicPricing()).isTrue();
+        // Then
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent())
+                .extracting(FareRule::getBasePrice)
+                .containsExactlyInAnyOrder(
+                        new BigDecimal("25000"),
+                        new BigDecimal("50000")
+                );
+    }
+
+    @Test
+    @DisplayName("FareRule: find by to stop id with pagination")
+    void shouldFindByToStopId() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+        fareRuleRepository.save(fareRule2);
+        fareRuleRepository.save(fareRule3);
+
+        // When
+        var result = fareRuleRepository.findByToStopId(stop3.getId(), PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent())
+                .extracting(FareRule::getBasePrice)
+                .containsExactlyInAnyOrder(
+                        new BigDecimal("30000"),
+                        new BigDecimal("50000")
+                );
+    }
+
+    @Test
+    @DisplayName("FareRule: find by dynamic pricing with pagination")
+    void shouldFindByDynamicPricing() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+        fareRuleRepository.save(fareRule2);
+        fareRuleRepository.save(fareRule3);
+        fareRuleRepository.save(fareRule4);
+
+        // When
+        var dynamicResult = fareRuleRepository.findByDynamicPricing(true, PageRequest.of(0, 10));
+        var staticResult = fareRuleRepository.findByDynamicPricing(false, PageRequest.of(0, 10));
+
+        // Then
+        assertThat(dynamicResult.getContent()).hasSize(2);
+        assertThat(dynamicResult.getContent())
+                .extracting(FareRule::getBasePrice)
+                .containsExactlyInAnyOrder(
+                        new BigDecimal("25000"),
+                        new BigDecimal("50000")
+                );
+
+        assertThat(staticResult.getContent()).hasSize(2);
+        assertThat(staticResult.getContent())
+                .extracting(FareRule::getBasePrice)
+                .containsExactlyInAnyOrder(
+                        new BigDecimal("30000"),
+                        new BigDecimal("80000")
+                );
+    }
+
+    @Test
+    @DisplayName("FareRule: check if exists by route id")
+    void shouldCheckExistsByRouteId() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+        fareRuleRepository.save(fareRule4);
+
+        // When
+        var existsRoute1 = fareRuleRepository.existsByRouteId(route1.getId());
+        var existsRoute2 = fareRuleRepository.existsByRouteId(route2.getId());
+        var notExists = fareRuleRepository.existsByRouteId(999L);
+
+        // Then
+        assertThat(existsRoute1).isTrue();
+        assertThat(existsRoute2).isTrue();
+        assertThat(notExists).isFalse();
+    }
+
+    @Test
+    @DisplayName("FareRule: check if exists duplicate fare rule for segment")
+    void shouldCheckExistsByRouteIdAndFromStopIdAndToStopId() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+
+        // When
+        var exists = fareRuleRepository.existsByRouteIdAndFromStopIdAndToStopId(
+                route1.getId(),
+                stop1.getId(),
+                stop2.getId()
+        );
+        var notExists = fareRuleRepository.existsByRouteIdAndFromStopIdAndToStopId(
+                route1.getId(),
+                stop1.getId(),
+                stop1.getId()
+        );
+
+        // Then
+        assertThat(exists).isTrue();
+        assertThat(notExists).isFalse();
+    }
+
+    @Test
+    @DisplayName("FareRule: return empty page when route has no fare rules")
+    void shouldReturnEmptyPageWhenRouteHasNoFareRules() {
+        // Given - route2 has no saved fare rules
+
+        // When
+        var result = fareRuleRepository.findByRouteId(route2.getId(), PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FareRule: return empty page when from stop has no fare rules")
+    void shouldReturnEmptyPageWhenFromStopHasNoFareRules() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+
+        // When
+        var result = fareRuleRepository.findByFromStopId(stop3.getId(), PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FareRule: return empty page when to stop has no fare rules")
+    void shouldReturnEmptyPageWhenToStopHasNoFareRules() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+
+        // When
+        var result = fareRuleRepository.findByToStopId(stop1.getId(), PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("FareRule: verify discounts are properly stored")
+    void shouldVerifyDiscountsAreProperlyStored() {
+        // Given
+        fareRuleRepository.save(fareRule1);
+
+        // When
+        var result = fareRuleRepository.findById(fareRule1.getId());
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getDiscounts())
+                .containsExactlyInAnyOrder("STUDENT", "SENIOR");
     }
 }

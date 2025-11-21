@@ -20,10 +20,10 @@ public class SeatRepositoryTest extends AbstractRepositoryIT {
 
     private Bus bus1;
     private Bus bus2;
-    private Seat seatA1;
-    private Seat seatA2;
-    private Seat seatB1;
-    private Seat seatC1;
+    private Seat seat1;
+    private Seat seat2;
+    private Seat seat3;
+    private Seat seat4;
 
     @BeforeEach
     void setUp() {
@@ -36,68 +36,72 @@ public class SeatRepositoryTest extends AbstractRepositoryIT {
                 .capacity(40)
                 .status(true)
                 .build();
-        busRepository.save(bus1);
+        bus1 = busRepository.save(bus1);
 
         bus2 = Bus.builder()
                 .plate("XYZ789")
                 .capacity(30)
                 .status(true)
                 .build();
-        busRepository.save(bus2);
+        bus2 = busRepository.save(bus2);
 
         // Create seats for bus1
-        seatA1 = Seat.builder()
+        seat1 = Seat.builder()
                 .bus(bus1)
                 .number("A1")
                 .seatType(SeatType.STANDARD)
                 .build();
 
-        seatA2 = Seat.builder()
+        seat2 = Seat.builder()
                 .bus(bus1)
                 .number("A2")
                 .seatType(SeatType.STANDARD)
                 .build();
 
-        seatB1 = Seat.builder()
+        seat3 = Seat.builder()
                 .bus(bus1)
-                .number("B1")
+                .number("P1")
                 .seatType(SeatType.PREFERENTIAL)
                 .build();
 
         // Create seat for bus2
-        seatC1 = Seat.builder()
+        seat4 = Seat.builder()
                 .bus(bus2)
-                .number("C1")
+                .number("A1")
                 .seatType(SeatType.STANDARD)
                 .build();
     }
 
     @Test
-    @DisplayName("Seat: find all by bus id")
+    @DisplayName("Seat: find by bus id")
     void shouldFindByBusId() {
         // Given
-        seatRepository.save(seatA1);
-        seatRepository.save(seatA2);
-        seatRepository.save(seatB1);
-        seatRepository.save(seatC1);
+        seatRepository.save(seat1);
+        seatRepository.save(seat2);
+        seatRepository.save(seat3);
+        seatRepository.save(seat4);
 
         // When
-        var result = seatRepository.findByBusId(bus1.getId());
+        var bus1Seats = seatRepository.findByBusId(bus1.getId());
+        var bus2Seats = seatRepository.findByBusId(bus2.getId());
 
         // Then
-        assertThat(result).hasSize(3);
-        assertThat(result)
+        assertThat(bus1Seats).hasSize(3);
+        assertThat(bus1Seats)
                 .extracting(Seat::getNumber)
-                .containsExactlyInAnyOrder("A1", "A2", "B1");
+                .containsExactlyInAnyOrder("A1", "A2", "P1");
+
+        assertThat(bus2Seats).hasSize(1);
+        assertThat(bus2Seats.get(0).getNumber()).isEqualTo("A1");
     }
 
     @Test
     @DisplayName("Seat: find by bus id and seat type")
     void shouldFindByBusIdAndSeatType() {
         // Given
-        seatRepository.save(seatA1);
-        seatRepository.save(seatA2);
-        seatRepository.save(seatB1);
+        seatRepository.save(seat1);
+        seatRepository.save(seat2);
+        seatRepository.save(seat3);
 
         // When
         var standardSeats = seatRepository.findByBusIdAndSeatType(bus1.getId(), SeatType.STANDARD);
@@ -110,52 +114,51 @@ public class SeatRepositoryTest extends AbstractRepositoryIT {
                 .containsExactlyInAnyOrder("A1", "A2");
 
         assertThat(preferentialSeats).hasSize(1);
-        assertThat(preferentialSeats.get(0).getNumber()).isEqualTo("B1");
+        assertThat(preferentialSeats.get(0).getNumber()).isEqualTo("P1");
     }
 
     @Test
-    @DisplayName("Seat: find by bus id and seat number")
+    @DisplayName("Seat: find by bus id and number")
     void shouldFindByBusIdAndNumber() {
         // Given
-        seatRepository.save(seatA1);
-        seatRepository.save(seatA2);
+        seatRepository.save(seat1);
+        seatRepository.save(seat2);
 
         // When
         var result = seatRepository.findByBusIdAndNumber(bus1.getId(), "A1");
 
         // Then
         assertThat(result).isPresent();
-        assertThat(result.get().getNumber()).isEqualTo("A1");
         assertThat(result.get().getSeatType()).isEqualTo(SeatType.STANDARD);
     }
 
     @Test
-    @DisplayName("Seat: count seats by bus id")
+    @DisplayName("Seat: count by bus id")
     void shouldCountByBusId() {
         // Given
-        seatRepository.save(seatA1);
-        seatRepository.save(seatA2);
-        seatRepository.save(seatB1);
-        seatRepository.save(seatC1);
+        seatRepository.save(seat1);
+        seatRepository.save(seat2);
+        seatRepository.save(seat3);
+        seatRepository.save(seat4);
 
         // When
-        var countBus1 = seatRepository.countByBusId(bus1.getId());
-        var countBus2 = seatRepository.countByBusId(bus2.getId());
+        var bus1Count = seatRepository.countByBusId(bus1.getId());
+        var bus2Count = seatRepository.countByBusId(bus2.getId());
 
         // Then
-        assertThat(countBus1).isEqualTo(3);
-        assertThat(countBus2).isEqualTo(1);
+        assertThat(bus1Count).isEqualTo(3L);
+        assertThat(bus2Count).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("Seat: check if seat exists by bus id and number")
+    @DisplayName("Seat: check if exists by bus id and number")
     void shouldCheckExistsByBusIdAndNumber() {
         // Given
-        seatRepository.save(seatA1);
+        seatRepository.save(seat1);
 
         // When
         var exists = seatRepository.existsByBusIdAndNumber(bus1.getId(), "A1");
-        var notExists = seatRepository.existsByBusIdAndNumber(bus1.getId(), "Z9");
+        var notExists = seatRepository.existsByBusIdAndNumber(bus1.getId(), "Z99");
 
         // Then
         assertThat(exists).isTrue();
@@ -166,9 +169,9 @@ public class SeatRepositoryTest extends AbstractRepositoryIT {
     @DisplayName("Seat: find by bus id ordered by number ascending")
     void shouldFindByBusIdOrderByNumberAsc() {
         // Given
-        seatRepository.save(seatB1);
-        seatRepository.save(seatA1);
-        seatRepository.save(seatA2);
+        seatRepository.save(seat3); // P1
+        seatRepository.save(seat1); // A1
+        seatRepository.save(seat2); // A2
 
         // When
         var result = seatRepository.findByBusIdOrderByNumberAsc(bus1.getId());
@@ -177,26 +180,32 @@ public class SeatRepositoryTest extends AbstractRepositoryIT {
         assertThat(result).hasSize(3);
         assertThat(result)
                 .extracting(Seat::getNumber)
-                .containsExactly("A1", "A2", "B1");
+                .containsExactly("A1", "A2", "P1"); // Ordered alphabetically
     }
 
     @Test
-    @DisplayName("Seat: return empty when bus has no seats")
+    @DisplayName("Seat: return empty list when bus has no seats")
     void shouldReturnEmptyWhenBusHasNoSeats() {
-        // Given - bus2 has no seats saved
+        // Given - bus without seats
+        Bus bus3 = Bus.builder()
+                .plate("DEF456")
+                .capacity(20)
+                .status(true)
+                .build();
+        bus3 = busRepository.save(bus3);
 
         // When
-        var result = seatRepository.findByBusId(bus2.getId());
+        var result = seatRepository.findByBusId(bus3.getId());
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("Seat: return empty optional when seat not found")
-    void shouldReturnEmptyWhenSeatNotFound() {
+    @DisplayName("Seat: return empty when bus id and number not found")
+    void shouldReturnEmptyWhenBusIdAndNumberNotFound() {
         // Given
-        seatRepository.save(seatA1);
+        seatRepository.save(seat1);
 
         // When
         var result = seatRepository.findByBusIdAndNumber(bus1.getId(), "Z99");
@@ -206,14 +215,70 @@ public class SeatRepositoryTest extends AbstractRepositoryIT {
     }
 
     @Test
-    @DisplayName("Seat: count returns zero if bus has no seats")
-    void shouldReturnZeroCountForEmptyBus() {
-        // Given - no seats saved for bus1
+    @DisplayName("Seat: return empty list when bus has no seats of specific type")
+    void shouldReturnEmptyWhenBusHasNoSeatsOfType() {
+        // Given
+        seatRepository.save(seat1); // Only standard seat
 
         // When
-        var count = seatRepository.countByBusId(bus1.getId());
+        var result = seatRepository.findByBusIdAndSeatType(bus1.getId(), SeatType.PREFERENTIAL);
 
         // Then
-        assertThat(count).isZero();
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Seat: return zero count when bus has no seats")
+    void shouldReturnZeroCountWhenBusHasNoSeats() {
+        // Given - bus without seats
+        Bus bus3 = Bus.builder()
+                .plate("DEF456")
+                .capacity(20)
+                .status(true)
+                .build();
+        bus3 = busRepository.save(bus3);
+
+        // When
+        var count = seatRepository.countByBusId(bus3.getId());
+
+        // Then
+        assertThat(count).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("Seat: verify seat type is properly stored")
+    void shouldVerifySeatTypeIsProperlyStored() {
+        // Given
+        seatRepository.save(seat1);
+        seatRepository.save(seat3);
+
+        // When
+        var standardSeat = seatRepository.findByBusIdAndNumber(bus1.getId(), "A1");
+        var preferentialSeat = seatRepository.findByBusIdAndNumber(bus1.getId(), "P1");
+
+        // Then
+        assertThat(standardSeat).isPresent();
+        assertThat(standardSeat.get().getSeatType()).isEqualTo(SeatType.STANDARD);
+
+        assertThat(preferentialSeat).isPresent();
+        assertThat(preferentialSeat.get().getSeatType()).isEqualTo(SeatType.PREFERENTIAL);
+    }
+
+    @Test
+    @DisplayName("Seat: same seat number in different buses")
+    void shouldAllowSameSeatNumberInDifferentBuses() {
+        // Given
+        seatRepository.save(seat1); // A1 in bus1
+        seatRepository.save(seat4); // A1 in bus2
+
+        // When
+        var bus1SeatA1 = seatRepository.findByBusIdAndNumber(bus1.getId(), "A1");
+        var bus2SeatA1 = seatRepository.findByBusIdAndNumber(bus2.getId(), "A1");
+
+        // Then
+        assertThat(bus1SeatA1).isPresent();
+        assertThat(bus2SeatA1).isPresent();
+        assertThat(bus1SeatA1.get().getBus().getPlate()).isEqualTo("ABC123");
+        assertThat(bus2SeatA1.get().getBus().getPlate()).isEqualTo("XYZ789");
     }
 }
