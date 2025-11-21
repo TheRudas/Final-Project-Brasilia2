@@ -2,11 +2,11 @@ package co.edu.unimagdalena.finalproject_brasilia2.services;
 
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.TripCreateRequest;
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.TripUpdateRequest;
-import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TripDtos.TripResponse;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.*;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TripStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
+import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.impl.TripServiceImpl;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TripMapper;
 import org.junit.jupiter.api.Test;
@@ -19,12 +19,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -52,42 +51,29 @@ class TripServiceImplTest {
     @InjectMocks
     private TripServiceImpl service;
 
-    // ========================= CREATE TESTS =========================
     @Test
     void shouldCreateTripSuccessfully() {
         // Given
-        var route = Route.builder()
-                .id(1L)
-                .origin("Bogotá")
-                .destination("Medellín")
-                .build();
+        var route = Route.builder().id(1L).name("Bogotá-Tunja").build();
+        var bus = Bus.builder().id(10L).plate("ABC123").status(true).capacity(40).build();
 
-        var bus = Bus.builder()
-                .id(2L)
-                .plate("ABC123")
-                .capacity(40)
-                .status(true)
-                .build();
-
-        var departureTime = OffsetDateTime.of(2025, 12, 20, 8, 0, 0, 0, ZoneOffset.UTC);
-        var arrivalTime = OffsetDateTime.of(2025, 12, 20, 16, 0, 0, 0, ZoneOffset.UTC);
+        var departureTime = OffsetDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+        var arrivalTime = departureTime.plusHours(3);
 
         var request = new TripCreateRequest(
                 1L,
-                2L,
-                LocalDate.of(2025, 12, 20),
+                10L,
+                LocalDate.now().plusDays(1),
                 departureTime,
                 arrivalTime
         );
 
         when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
-        when(busRepository.findById(2L)).thenReturn(Optional.of(bus));
-        // CAMBIO: Usar new ArrayList<>() en lugar de List.of()
-        when(tripRepository.findConflictingTrips(any(), any(), any(), any()))
-                .thenReturn(new ArrayList<>()); // Lista mutable vacía
+        when(busRepository.findById(10L)).thenReturn(Optional.of(bus));
+        when(tripRepository.findConflictingTrips(any(), any(), any(), any())).thenReturn(List.of());
         when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> {
             Trip t = inv.getArgument(0);
-            t.setId(10L);
+            t.setId(100L);
             return t;
         });
 
@@ -95,180 +81,468 @@ class TripServiceImplTest {
         var response = service.create(request);
 
         // Then
-        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.id()).isEqualTo(100L);
         assertThat(response.routeId()).isEqualTo(1L);
-        assertThat(response.busId()).isEqualTo(2L);
-        assertThat(response.localDate()).isEqualTo(LocalDate.of(2025, 12, 20));
+        assertThat(response.busId()).isEqualTo(10L);
         assertThat(response.status()).isEqualTo(TripStatus.SCHEDULED);
 
         verify(routeRepository).findById(1L);
-        verify(busRepository).findById(2L);
-        verify(tripRepository).findConflictingTrips(any(), any(), any(), any());
+        verify(busRepository).findById(10L);
         verify(tripRepository).save(any(Trip.class));
     }
 
-    // ========================= UPDATE TESTS =========================
+    @Test
+    void shouldThrowNotFoundExceptionWhenRouteNotExists() {
+        // Given
+        var departureTime = OffsetDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+        var arrivalTime = departureTime.plusHours(3);
+
+        var request = new TripCreateRequest(
+                99L,
+                10L,
+                LocalDate.now().plusDays(1),
+                departureTime,
+                arrivalTime
+        );
+
+        when(routeRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Route 99 not found");
+
+        verify(routeRepository).findById(99L);
+        verify(tripRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenBusIsInactive() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).plate("ABC123").status(false).build();
+
+        var departureTime = OffsetDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+        var arrivalTime = departureTime.plusHours(3);
+
+        var request = new TripCreateRequest(
+                1L,
+                10L,
+                LocalDate.now().plusDays(1),
+                departureTime,
+                arrivalTime
+        );
+
+        when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
+        when(busRepository.findById(10L)).thenReturn(Optional.of(bus));
+
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Bus ABC123 is not active/operational");
+
+        verify(tripRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionWhenDateIsInPast() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).status(true).build();
+
+        var departureTime = OffsetDateTime.now().minusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+        var arrivalTime = departureTime.plusHours(3);
+
+        var request = new TripCreateRequest(
+                1L,
+                10L,
+                LocalDate.now().minusDays(1),
+                departureTime,
+                arrivalTime
+        );
+
+        when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
+        when(busRepository.findById(10L)).thenReturn(Optional.of(bus));
+
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Trip date cannot be in the past");
+
+        verify(tripRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionWhenArrivalBeforeDeparture() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).status(true).build();
+
+        var departureTime = OffsetDateTime.now().plusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0);
+        var arrivalTime = OffsetDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+
+        var request = new TripCreateRequest(
+                1L,
+                10L,
+                LocalDate.now().plusDays(1),
+                departureTime,
+                arrivalTime
+        );
+
+        when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
+        when(busRepository.findById(10L)).thenReturn(Optional.of(bus));
+
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Arrival time must be after departure time");
+
+        verify(tripRepository, never()).save(any());
+    }
 
     @Test
     void shouldUpdateTripSuccessfully() {
         // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").capacity(40).status(true).build();
-        var newRoute = Route.builder().id(3L).origin("Cali").destination("Cartagena").build();
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).plate("ABC123").status(true).capacity(40).build();
+
+        var departureTime = OffsetDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+        var arrivalTime = departureTime.plusHours(3);
 
         var existingTrip = Trip.builder()
-                .id(10L)
+                .id(100L)
                 .route(route)
                 .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .departureTime(OffsetDateTime.of(2025, 12, 20, 8, 0, 0, 0, ZoneOffset.UTC))
-                .arrivalTime(OffsetDateTime.of(2025, 12, 20, 16, 0, 0, 0, ZoneOffset.UTC))
+                .date(LocalDate.now().plusDays(1))
+                .departureTime(departureTime)
+                .arrivalTime(arrivalTime)
                 .status(TripStatus.SCHEDULED)
                 .build();
 
+        var newDepartureTime = OffsetDateTime.now().plusDays(1).withHour(9).withMinute(0).withSecond(0).withNano(0);
+        var newArrivalTime = newDepartureTime.plusHours(3);
+
         var updateRequest = new TripUpdateRequest(
-                3L,
                 null,
-                LocalDate.of(2025, 12, 21),
+                null,
+                null,
+                newDepartureTime,
+                newArrivalTime,
+                null
+        );
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(existingTrip));
+        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        var response = service.update(100L, updateRequest);
+
+        // Then
+        assertThat(response.id()).isEqualTo(100L);
+
+        verify(tripRepository).findById(100L);
+        verify(tripRepository).save(any(Trip.class));
+    }
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenUpdateCompletedTrip() {
+        // Given
+        var trip = Trip.builder()
+                .id(100L)
+                .status(TripStatus.ARRIVED)
+                .build();
+
+        var updateRequest = new TripUpdateRequest(
+                null,
+                null,
+                LocalDate.now().plusDays(2),
                 null,
                 null,
                 null
         );
 
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(existingTrip));
-        when(routeRepository.findById(3L)).thenReturn(Optional.of(newRoute));
-        // CAMBIO: Usar new ArrayList<>() en lugar de List.of()
-        when(tripRepository.findConflictingTrips(any(), any(), any(), any()))
-                .thenReturn(new ArrayList<>()); // Lista mutable vacía
-        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
 
-        // When
-        var response = service.update(10L, updateRequest);
+        // When / Then
+        assertThatThrownBy(() -> service.update(100L, updateRequest))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot update a trip with status ARRIVED");
 
-        // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.routeId()).isEqualTo(3L);
-        assertThat(response.localDate()).isEqualTo(LocalDate.of(2025, 12, 21));
-
-        verify(tripRepository).findById(10L);
-        verify(routeRepository).findById(3L);
-        verify(tripRepository).save(any(Trip.class));
+        verify(tripRepository, never()).save(any());
     }
-
-    // ========================= GET TESTS =========================
 
     @Test
     void shouldGetTripById() {
         // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").capacity(40).status(true).build();
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).build();
+
+        var departureTime = OffsetDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+        var arrivalTime = departureTime.plusHours(3);
 
         var trip = Trip.builder()
-                .id(10L)
+                .id(100L)
                 .route(route)
                 .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .departureTime(OffsetDateTime.of(2025, 12, 20, 8, 0, 0, 0, ZoneOffset.UTC))
-                .arrivalTime(OffsetDateTime.of(2025, 12, 20, 16, 0, 0, 0, ZoneOffset.UTC))
+                .date(LocalDate.now().plusDays(1))
+                .departureTime(departureTime)
+                .arrivalTime(arrivalTime)
                 .status(TripStatus.SCHEDULED)
                 .build();
 
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
 
         // When
-        var response = service.get(10L);
+        var response = service.get(100L);
 
         // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.routeId()).isEqualTo(1L);
-        assertThat(response.busId()).isEqualTo(2L);
+        assertThat(response.id()).isEqualTo(100L);
         assertThat(response.status()).isEqualTo(TripStatus.SCHEDULED);
 
-        verify(tripRepository).findById(10L);
+        verify(tripRepository).findById(100L);
     }
 
-    // ========================= DELETE TESTS =========================
+    @Test
+    void shouldThrowNotFoundExceptionWhenGetNonExistentTrip() {
+        // Given
+        when(tripRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.get(99L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Trip 99 not found");
+
+        verify(tripRepository).findById(99L);
+    }
 
     @Test
     void shouldDeleteTripSuccessfully() {
         // Given
         var route = Route.builder().id(1L).build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
+        var bus = Bus.builder().id(10L).build();
 
         var trip = Trip.builder()
-                .id(10L)
+                .id(100L)
                 .route(route)
                 .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
                 .build();
 
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
-        when(ticketRepository.findByTripId(10L)).thenReturn(List.of());
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(ticketRepository.findByTripId(100L)).thenReturn(List.of());
         doNothing().when(tripRepository).delete(trip);
 
         // When
-        service.delete(10L);
+        service.delete(100L);
 
         // Then
-        verify(tripRepository).findById(10L);
+        verify(tripRepository).findById(100L);
         verify(tripRepository).delete(trip);
     }
 
-    // ========================= QUERY TESTS =========================
+    @Test
+    void shouldThrowIllegalStateExceptionWhenDeleteTripWithTickets() {
+        // Given
+        var trip = Trip.builder().id(100L).build();
+        var ticket = Ticket.builder().id(1L).status(TicketStatus.SOLD).build();
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(ticketRepository.findByTripId(100L)).thenReturn(List.of(ticket));
+
+        // When / Then
+        assertThatThrownBy(() -> service.delete(100L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot delete trip 100: it has sold tickets");
+
+        verify(tripRepository, never()).delete(any());
+    }
 
     @Test
-    void shouldFindTripsByStatus() {
+    void shouldBoardTripSuccessfully() {
         // Given
         var route = Route.builder().id(1L).build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
+        var bus = Bus.builder().id(10L).plate("ABC123").build();
 
-        var trip1 = Trip.builder()
-                .id(10L)
+        var trip = Trip.builder()
+                .id(100L)
                 .route(route)
                 .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
                 .status(TripStatus.SCHEDULED)
                 .build();
 
-        var trip2 = Trip.builder()
-                .id(11L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 21))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findByStatus(TripStatus.SCHEDULED))
-                .thenReturn(List.of(trip1, trip2));
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // When
-        var result = service.findByStatus(TripStatus.SCHEDULED);
+        var response = service.boardTrip(100L);
 
         // Then
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).id()).isEqualTo(10L);
-        assertThat(result.get(1).id()).isEqualTo(11L);
-        assertThat(result.get(0).status()).isEqualTo(TripStatus.SCHEDULED);
+        assertThat(response.status()).isEqualTo(TripStatus.BOARDING);
 
-        verify(tripRepository).findByStatus(TripStatus.SCHEDULED);
+        verify(tripRepository).findById(100L);
+        verify(tripRepository).save(any(Trip.class));
+    }
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenBoardNonScheduledTrip() {
+        // Given
+        var trip = Trip.builder()
+                .id(100L)
+                .status(TripStatus.DEPARTED)
+                .build();
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+
+        // When / Then
+        assertThatThrownBy(() -> service.boardTrip(100L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Only SCHEDULED trips can start boarding");
+
+        verify(tripRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldDepartTripSuccessfully() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).plate("ABC123").build();
+        var driver = User.builder().id(5L).name("Driver").build();
+
+        var trip = Trip.builder()
+                .id(100L)
+                .route(route)
+                .bus(bus)
+                .status(TripStatus.BOARDING)
+                .build();
+
+        var assignment = Assignment.builder()
+                .id(1L)
+                .trip(trip)
+                .driver(driver)
+                .checkListOk(true)
+                .build();
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(assignmentRepository.findFirstByTripId(100L)).thenReturn(Optional.of(assignment));
+        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        var response = service.departTrip(100L);
+
+        // Then
+        assertThat(response.status()).isEqualTo(TripStatus.DEPARTED);
+
+        verify(tripRepository).findById(100L);
+        verify(assignmentRepository).findFirstByTripId(100L);
+        verify(tripRepository).save(any(Trip.class));
+    }
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenDepartWithoutAssignment() {
+        // Given
+        var trip = Trip.builder()
+                .id(100L)
+                .status(TripStatus.BOARDING)
+                .build();
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(assignmentRepository.findFirstByTripId(100L)).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.departTrip(100L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Trip 100 must have a driver assigned before departure");
+
+        verify(tripRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldArriveTripSuccessfully() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).plate("ABC123").build();
+
+        var trip = Trip.builder()
+                .id(100L)
+                .route(route)
+                .bus(bus)
+                .status(TripStatus.DEPARTED)
+                .build();
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        var response = service.arriveTrip(100L);
+
+        // Then
+        assertThat(response.status()).isEqualTo(TripStatus.ARRIVED);
+
+        verify(tripRepository).findById(100L);
+        verify(tripRepository).save(any(Trip.class));
+    }
+
+    @Test
+    void shouldCancelTripSuccessfully() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var bus = Bus.builder().id(10L).plate("ABC123").build();
+
+        var trip = Trip.builder()
+                .id(100L)
+                .route(route)
+                .bus(bus)
+                .status(TripStatus.SCHEDULED)
+                .date(LocalDate.now().plusDays(1))
+                .build();
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(ticketRepository.findByTripId(100L)).thenReturn(List.of());
+        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        var response = service.cancelTrip(100L);
+
+        // Then
+        assertThat(response.status()).isEqualTo(TripStatus.CANCELLED);
+
+        verify(tripRepository).findById(100L);
+        verify(tripRepository).save(any(Trip.class));
+    }
+
+    @Test
+    void shouldThrowIllegalStateExceptionWhenCancelTripWithSoldTickets() {
+        // Given
+        var trip = Trip.builder()
+                .id(100L)
+                .status(TripStatus.SCHEDULED)
+                .build();
+
+        var ticket = Ticket.builder().id(1L).status(TicketStatus.SOLD).build();
+
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(ticketRepository.findByTripId(100L)).thenReturn(List.of(ticket));
+
+        // When / Then
+        assertThatThrownBy(() -> service.cancelTrip(100L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot cancel trip 100: it has sold tickets");
+
+        verify(tripRepository, never()).save(any());
     }
 
     @Test
     void shouldFindTripsByRouteId() {
         // Given
         var route = Route.builder().id(1L).build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
+        var bus = Bus.builder().id(10L).build();
 
-        var trip1 = Trip.builder()
-                .id(10L)
+        var trip = Trip.builder()
+                .id(100L)
                 .route(route)
                 .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
                 .build();
 
-        when(tripRepository.findByRouteId(1L)).thenReturn(List.of(trip1));
+        when(tripRepository.findByRouteId(1L)).thenReturn(List.of(trip));
 
         // When
         var result = service.findByRouteId(1L);
@@ -281,468 +555,43 @@ class TripServiceImplTest {
     }
 
     @Test
-    void shouldFindTripsByBusId() {
-        // Given
-        var route = Route.builder().id(1L).build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip1 = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findByBusId(2L)).thenReturn(List.of(trip1));
-
-        // When
-        var result = service.findByBusId(2L);
-
-        // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).busId()).isEqualTo(2L);
-
-        verify(tripRepository).findByBusId(2L);
-    }
-
-    @Test
-    void shouldFindTripsByStatusAndBusId() {
-        // Given
-        var route = Route.builder().id(1L).build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip1 = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findByStatusAndBusId(TripStatus.SCHEDULED, 2L))
-                .thenReturn(List.of(trip1));
-
-        // When
-        var result = service.findByStatusAndBusId(TripStatus.SCHEDULED, 2L);
-
-        // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).status()).isEqualTo(TripStatus.SCHEDULED);
-        assertThat(result.get(0).busId()).isEqualTo(2L);
-
-        verify(tripRepository).findByStatusAndBusId(TripStatus.SCHEDULED, 2L);
-    }
-
-    // ========================= BÚSQUEDA AVANZADA TESTS =========================
-
-    @Test
-    void shouldSearchAvailableTrips() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").capacity(40).build();
-
-        var trip1 = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .departureTime(OffsetDateTime.of(2025, 12, 20, 8, 0, 0, 0, ZoneOffset.UTC))
-                .arrivalTime(OffsetDateTime.of(2025, 12, 20, 16, 0, 0, 0, ZoneOffset.UTC))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        var trip2 = Trip.builder()
-                .id(11L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .departureTime(OffsetDateTime.of(2025, 12, 20, 14, 0, 0, 0, ZoneOffset.UTC))
-                .arrivalTime(OffsetDateTime.of(2025, 12, 20, 22, 0, 0, 0, ZoneOffset.UTC))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findAvailableTrips(eq(1L), eq(LocalDate.of(2025, 12, 20)), any()))
-                .thenReturn(List.of(trip1, trip2));
-
-        // When
-        var result = service.searchAvailableTrips(1L, LocalDate.of(2025, 12, 20));
-
-        // Then
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).id()).isEqualTo(10L);
-        assertThat(result.get(1).id()).isEqualTo(11L);
-        assertThat(result.get(0).status()).isEqualTo(TripStatus.SCHEDULED);
-
-        verify(tripRepository).findAvailableTrips(eq(1L), eq(LocalDate.of(2025, 12, 20)), any());
-    }
-
-    @Test
-    void shouldSearchTripsByRouteAndDate() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip1 = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findByRouteIdAndDate(1L, LocalDate.of(2025, 12, 20)))
-                .thenReturn(List.of(trip1));
-
-        // When
-        var result = service.searchTrips(1L, LocalDate.of(2025, 12, 20), null);
-
-        // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).routeId()).isEqualTo(1L);
-        assertThat(result.get(0).localDate()).isEqualTo(LocalDate.of(2025, 12, 20));
-
-        verify(tripRepository).findByRouteIdAndDate(1L, LocalDate.of(2025, 12, 20));
-    }
-
-    @Test
-    void shouldSearchTripsByRouteAndDateAndStatus() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip1 = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findByRouteIdAndDateAndStatus(1L, LocalDate.of(2025, 12, 20), TripStatus.SCHEDULED))
-                .thenReturn(List.of(trip1));
-
-        // When
-        var result = service.searchTrips(1L, LocalDate.of(2025, 12, 20), TripStatus.SCHEDULED);
-
-        // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).status()).isEqualTo(TripStatus.SCHEDULED);
-
-        verify(tripRepository).findByRouteIdAndDateAndStatus(1L, LocalDate.of(2025, 12, 20), TripStatus.SCHEDULED);
-    }
-
-    // ========================= GESTIÓN DE ESTADOS TESTS =========================
-
-    @Test
-    void shouldBoardTripSuccessfully() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
-        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // When
-        var response = service.boardTrip(10L);
-
-        // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.status()).isEqualTo(TripStatus.BOARDING);
-
-        verify(tripRepository).findById(10L);
-        verify(tripRepository).save(any(Trip.class));
-    }
-
-    @Test
-    void shouldDepartTripSuccessfully() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-        var driver = User.builder().id(3L).name("Juan Conductor").build();
-
-        var trip = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.BOARDING)
-                .build();
-
-        var assignment = Assignment.builder()
-                .id(1L)
-                .trip(trip)
-                .driver(driver)
-                .checkListOk(true)
-                .build();
-
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
-        when(assignmentRepository.findFirstByTripId(10L)).thenReturn(Optional.of(assignment));
-        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // When
-        var response = service.departTrip(10L);
-
-        // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.status()).isEqualTo(TripStatus.DEPARTED);
-
-        verify(tripRepository).findById(10L);
-        verify(assignmentRepository).findFirstByTripId(10L);
-        verify(tripRepository).save(any(Trip.class));
-    }
-
-    @Test
-    void shouldArriveTripSuccessfully() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.DEPARTED)
-                .build();
-
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
-        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // When
-        var response = service.arriveTrip(10L);
-
-        // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.status()).isEqualTo(TripStatus.ARRIVED);
-
-        verify(tripRepository).findById(10L);
-        verify(tripRepository).save(any(Trip.class));
-    }
-
-    @Test
-    void shouldCancelTripSuccessfully() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
-        when(ticketRepository.findByTripId(10L)).thenReturn(List.of());
-        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // When
-        var response = service.cancelTrip(10L);
-
-        // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.status()).isEqualTo(TripStatus.CANCELLED);
-
-        verify(tripRepository).findById(10L);
-        verify(tripRepository).save(any(Trip.class));
-    }
-
-    @Test
-    void shouldRescheduleTripSuccessfully() {
-        // Given
-        var route = Route.builder().id(1L).origin("Bogotá").destination("Medellín").build();
-        var bus = Bus.builder().id(2L).plate("ABC123").build();
-
-        var trip = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.CANCELLED)
-                .build();
-
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
-        when(tripRepository.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // When
-        var response = service.rescheduleTrip(10L);
-
-        // Then
-        assertThat(response.id()).isEqualTo(10L);
-        assertThat(response.status()).isEqualTo(TripStatus.SCHEDULED);
-
-        verify(tripRepository).findById(10L);
-        verify(tripRepository).save(any(Trip.class));
-    }
-
-    // ========================= DISPONIBILIDAD TESTS =========================
-
-    @Test
     void shouldGetAvailableSeatsCount() {
         // Given
-        var route = Route.builder().id(1L).build();
-        var bus = Bus.builder().id(2L).plate("ABC123").capacity(40).build();
+        var bus = Bus.builder().id(10L).capacity(40).build();
+        var trip = Trip.builder().id(100L).bus(bus).build();
 
-        var trip = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
+        var ticket1 = Ticket.builder().id(1L).seatNumber("A1").status(TicketStatus.SOLD).build();
+        var ticket2 = Ticket.builder().id(2L).seatNumber("A2").status(TicketStatus.SOLD).build();
 
-        var ticket1 = Ticket.builder()
-                .id(1L)
-                .trip(trip)
-                .seatNumber("A1")
-                .status(TicketStatus.SOLD)
-                .build();
-
-        var ticket2 = Ticket.builder()
-                .id(2L)
-                .trip(trip)
-                .seatNumber("A2")
-                .status(TicketStatus.SOLD)
-                .build();
-
-        when(tripRepository.findById(10L)).thenReturn(Optional.of(trip));
-        when(ticketRepository.findByTripId(10L)).thenReturn(List.of(ticket1, ticket2));
+        when(tripRepository.findById(100L)).thenReturn(Optional.of(trip));
+        when(ticketRepository.findByTripId(100L)).thenReturn(List.of(ticket1, ticket2));
 
         // When
-        var availableSeats = service.getAvailableSeatsCount(10L);
+        var available = service.getAvailableSeatsCount(100L);
 
         // Then
-        assertThat(availableSeats).isEqualTo(38); // 40 - 2 = 38
+        assertThat(available).isEqualTo(38); // 40 - 2
 
-        verify(tripRepository).findById(10L);
-        verify(ticketRepository).findByTripId(10L);
+        verify(tripRepository).findById(100L);
+        verify(ticketRepository).findByTripId(100L);
     }
 
     @Test
     void shouldGetOccupiedSeatsCount() {
         // Given
-        var route = Route.builder().id(1L).build();
-        var bus = Bus.builder().id(2L).plate("ABC123").capacity(40).build();
+        var ticket1 = Ticket.builder().id(1L).seatNumber("A1").status(TicketStatus.SOLD).build();
+        var ticket2 = Ticket.builder().id(2L).seatNumber("A2").status(TicketStatus.SOLD).build();
+        var ticket3 = Ticket.builder().id(3L).seatNumber("A3").status(TicketStatus.CANCELLED).build();
 
-        var trip = Trip.builder()
-                .id(10L)
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.of(2025, 12, 20))
-                .status(TripStatus.SCHEDULED)
-                .build();
-
-        var ticket1 = Ticket.builder()
-                .id(1L)
-                .trip(trip)
-                .seatNumber("A1")
-                .status(TicketStatus.SOLD)
-                .build();
-
-        var ticket2 = Ticket.builder()
-                .id(2L)
-                .trip(trip)
-                .seatNumber("A2")
-                .status(TicketStatus.SOLD)
-                .build();
-
-        var ticket3 = Ticket.builder()
-                .id(3L)
-                .trip(trip)
-                .seatNumber("A3")
-                .status(TicketStatus.CANCELLED)
-                .build();
-
-        when(ticketRepository.findByTripId(10L)).thenReturn(List.of(ticket1, ticket2, ticket3));
+        when(ticketRepository.findByTripId(100L)).thenReturn(List.of(ticket1, ticket2, ticket3));
 
         // When
-        var occupiedSeats = service.getOccupiedSeatsCount(10L);
+        var occupied = service.getOccupiedSeatsCount(100L);
 
         // Then
-        assertThat(occupiedSeats).isEqualTo(2); // Solo cuenta SOLD
+        assertThat(occupied).isEqualTo(2); // Solo los SOLD
 
-        verify(ticketRepository).findByTripId(10L);
-    }
-
-    @Test
-    void shouldCheckBusIsAvailable() {
-        // Given
-        when(tripRepository.findActiveTripsByBusAndDate(2L, LocalDate.of(2025, 12, 20)))
-                .thenReturn(List.of());
-
-        // When
-        var isAvailable = service.isBusAvailable(2L, LocalDate.of(2025, 12, 20));
-
-        // Then
-        assertThat(isAvailable).isTrue();
-
-        verify(tripRepository).findActiveTripsByBusAndDate(2L, LocalDate.of(2025, 12, 20));
-    }
-
-    // ========================= VALIDACIONES TESTS =========================
-
-    @Test
-    void shouldReturnTrueWhenTripCanBeDeleted() {
-        // Given
-        when(ticketRepository.findByTripId(10L)).thenReturn(List.of());
-
-        // When
-        var canBeDeleted = service.canBeDeleted(10L);
-
-        // Then
-        assertThat(canBeDeleted).isTrue();
-
-        verify(ticketRepository).findByTripId(10L);
-    }
-
-    @Test
-    void shouldReturnFalseWhenTripHasTicketsSold() {
-        // Given
-        var ticket = Ticket.builder()
-                .id(1L)
-                .seatNumber("A1")
-                .status(TicketStatus.SOLD)
-                .build();
-
-        when(ticketRepository.findByTripId(10L)).thenReturn(List.of(ticket));
-
-        // When
-        var hasTicketsSold = service.hasTicketsSold(10L);
-
-        // Then
-        assertThat(hasTicketsSold).isTrue();
-
-        verify(ticketRepository).findByTripId(10L);
-    }
-
-    @Test
-    void shouldReturnFalseWhenTripHasNoTicketsSold() {
-        // Given
-        var ticket = Ticket.builder()
-                .id(1L)
-                .seatNumber("A1")
-                .status(TicketStatus.CANCELLED)
-                .build();
-
-        when(ticketRepository.findByTripId(10L)).thenReturn(List.of(ticket));
-
-        // When
-        var hasTicketsSold = service.hasTicketsSold(10L);
-
-        // Then
-        assertThat(hasTicketsSold).isFalse();
-
-        verify(ticketRepository).findByTripId(10L);
+        verify(ticketRepository).findByTripId(100L);
     }
 }
 

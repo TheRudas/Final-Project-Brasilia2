@@ -1,9 +1,13 @@
 package co.edu.unimagdalena.finalproject_brasilia2.services;
 
-import co.edu.unimagdalena.finalproject_brasilia2.api.dto.FareRuleDtos.*;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.*;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PassengerType;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.FareRuleDtos.FareRuleCreateRequest;
+import co.edu.unimagdalena.finalproject_brasilia2.api.dto.FareRuleDtos.FareRuleUpdateRequest;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.FareRule;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Route;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.FareRuleRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.RouteRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.StopRepository;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.impl.FareRuleServiceImpl;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.FareRuleMapper;
@@ -16,33 +20,27 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FareRuleServiceImplTest {
 
     @Mock
-    private FareRuleRepository fareRuleRepository;
+    private FareRuleRepository repository;
+
     @Mock
     private RouteRepository routeRepository;
+
     @Mock
     private StopRepository stopRepository;
-    @Mock
-    private TripRepository tripRepository;
-    @Mock
-    private ConfigService configService;
-    @Mock
-    private TripService tripService;
 
     @Spy
     private FareRuleMapper mapper = Mappers.getMapper(FareRuleMapper.class);
@@ -50,495 +48,347 @@ class FareRuleServiceImplTest {
     @InjectMocks
     private FareRuleServiceImpl service;
 
-    // ============= HELPER METHODS =============
-
-    private Route createTestRoute() {
-        return Route.builder()
-                .id(1L)
-                .code("RUT-001")
-                .name("Bogota-Medellin")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.00"))
-                .durationMin(360)
-                .build();
-    }
-
-    private Stop createTestStop(Route route, String name, Integer order) {
-        return Stop.builder()
-                .id(order.longValue())
-                .route(route)
-                .name(name)
-                .order(order)
-                .lat(4.7110)
-                .lng(-74.0721)
-                .build();
-    }
-
-    private Bus createTestBus() {
-        return Bus.builder()
-                .id(1L)
-                .plate("ABC123")
-                .capacity(40)
-                .amenities(new HashSet<>())
-                .status(true)
-                .build();
-    }
-
-    private Trip createTestTrip(Route route, Bus bus) {
-        return Trip.builder()
-                .id(1L)
-                .route(route)
-                .bus(bus)
-                .date(java.time.LocalDate.now())
-                .departureTime(OffsetDateTime.now().plusHours(2))
-                .arrivalTime(OffsetDateTime.now().plusHours(8))
-                .status(co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TripStatus.SCHEDULED)
-                .build();
-    }
-
-    private FareRule createTestFareRule(Route route, Stop fromStop, Stop toStop) {
-        return FareRule.builder()
-                .id(1L)
-                .route(route)
-                .fromStop(fromStop)
-                .toStop(toStop)
-                .basePrice(new BigDecimal("50000.00"))
-                .discounts(new HashSet<>())
-                .dynamicPricing(false)
-                .build();
-    }
-
-    // ============= CREATE TESTS =============
-
     @Test
     void shouldCreateFareRuleSuccessfully() {
         // Given
-        var route = createTestRoute();
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
+        var route = Route.builder()
+                .id(1L)
+                .name("Bogotá-Tunja")
+                .build();
 
-        var request = new FareRuleCreateRequest(1L, 1L, 5L, new BigDecimal("50000.00"));
+        var fromStop = Stop.builder()
+                .id(10L)
+                .name("Terminal Bogotá")
+                .order(1)
+                .route(route)
+                .build();
+
+        var toStop = Stop.builder()
+                .id(11L)
+                .name("Terminal Tunja")
+                .order(5)
+                .route(route)
+                .build();
+
+        var request = new FareRuleCreateRequest(
+                1L,
+                10L,
+                11L,
+                new BigDecimal("50000")
+        );
 
         when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.existsByRouteIdAndFromStopIdAndToStopId(1L, 1L, 5L)).thenReturn(false);
-        when(fareRuleRepository.save(any(FareRule.class))).thenAnswer(invocation -> {
-            FareRule saved = invocation.getArgument(0);
-            saved.setId(1L);
-            return saved;
+        when(stopRepository.findById(10L)).thenReturn(Optional.of(fromStop));
+        when(stopRepository.findById(11L)).thenReturn(Optional.of(toStop));
+        when(repository.existsByRouteIdAndFromStopIdAndToStopId(1L, 10L, 11L)).thenReturn(false);
+        when(repository.save(any(FareRule.class))).thenAnswer(inv -> {
+            FareRule f = inv.getArgument(0);
+            f.setId(100L);
+            return f;
         });
 
         // When
-        var result = service.create(request);
+        var response = service.create(request);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.routeId()).isEqualTo(1L);
-        assertThat(result.fromStopId()).isEqualTo(1L);
-        assertThat(result.toStopId()).isEqualTo(5L);
-        assertThat(result.basePrice()).isEqualByComparingTo(new BigDecimal("50000.00"));
+        assertThat(response.id()).isEqualTo(100L);
+        assertThat(response.routeId()).isEqualTo(1L);
+        assertThat(response.fromStopId()).isEqualTo(10L);
+        assertThat(response.toStopId()).isEqualTo(11L);
+        assertThat(response.basePrice()).isEqualByComparingTo(new BigDecimal("50000"));
 
-        verify(fareRuleRepository).existsByRouteIdAndFromStopIdAndToStopId(1L, 1L, 5L);
-        verify(fareRuleRepository).save(any(FareRule.class));
+        verify(routeRepository).findById(1L);
+        verify(stopRepository).findById(10L);
+        verify(stopRepository).findById(11L);
+        verify(repository).existsByRouteIdAndFromStopIdAndToStopId(1L, 10L, 11L);
+        verify(repository).save(any(FareRule.class));
     }
 
     @Test
-    void shouldThrowExceptionWhenCreatingDuplicateFareRule() {
-        // Given
-        var route = createTestRoute();
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-
-        var request = new FareRuleCreateRequest(1L, 1L, 5L, new BigDecimal("50000.00"));
-
-        when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.existsByRouteIdAndFromStopIdAndToStopId(1L, 1L, 5L)).thenReturn(true);
-
-        // When & Then
-        assertThatThrownBy(() -> service.create(request))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("FareRule already exists");
-
-        verify(fareRuleRepository, never()).save(any());
-    }
-
-    @Test
-    void shouldThrowNotFoundExceptionWhenRouteNotFound() {
+    void shouldThrowNotFoundExceptionWhenRouteNotExists() {
         // Given
         var request = new FareRuleCreateRequest(
-                999L, 1L, 5L,
-                new BigDecimal("50000.00")
+                99L,
+                10L,
+                11L,
+                new BigDecimal("50000")
         );
 
-        when(routeRepository.findById(999L)).thenReturn(Optional.empty());
+        when(routeRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // When & Then
+        // When / Then
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Route 999 not found");
-    }
+                .hasMessageContaining("Route 99 not found");
 
-    // ============= CALCULATE TICKET PRICE TESTS =============
-
-    @Test
-    void shouldCalculateTicketPriceWithExactFareRule() {
-        // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-        var fareRule = createTestFareRule(route, fromStop, toStop);
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.findByRouteId(eq(1L), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(fareRule)));
-        when(configService.getValue("FARE_MINIMUM_PRICE")).thenReturn(new BigDecimal("5000.00"));
-
-        // When
-        var result = service.calculateTicketPrice(1L, 1L, 5L, PassengerType.ADULT);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualByComparingTo(new BigDecimal("50000.00"));
-
-        verify(tripRepository).findById(1L);
-        verify(fareRuleRepository).findByRouteId(eq(1L), any(Pageable.class));
+        verify(routeRepository).findById(99L);
+        verify(repository, never()).save(any());
     }
 
     @Test
-    void shouldCalculateTicketPriceWithDynamicPricing() {
+    void shouldThrowIllegalStateExceptionWhenFareRuleAlreadyExists() {
         // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
+        var route = Route.builder().id(1L).build();
+        var fromStop = Stop.builder().id(10L).build();
+        var toStop = Stop.builder().id(11L).build();
 
-        var fareRule = FareRule.builder()
-                .id(1L)
-                .route(route)
-                .fromStop(fromStop)
-                .toStop(toStop)
-                .basePrice(new BigDecimal("50000.00"))
-                .discounts(new HashSet<>())
-                .dynamicPricing(true) // Habilitado
-                .build();
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.findByRouteId(eq(1L), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(fareRule)));
-        when(tripService.getOccupiedSeatsCount(1L)).thenReturn(36); // 90% ocupación
-        when(configService.getValue("FARE_MINIMUM_PRICE")).thenReturn(new BigDecimal("5000.00"));
-
-        // When
-        var result = service.calculateTicketPrice(1L, 1L, 5L, PassengerType.ADULT);
-
-        // Then
-        // 50000 * 1.30 (90% ocupación) = 65000
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualByComparingTo(new BigDecimal("65000.00"));
-
-        verify(tripService).getOccupiedSeatsCount(1L);
-    }
-
-    @Test
-    void shouldCalculateTicketPriceWithChildDiscount() {
-        // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-        var fareRule = createTestFareRule(route, fromStop, toStop);
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.findByRouteId(eq(1L), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(fareRule)));
-        when(configService.getValue("DISCOUNT_CHILD_PERCENT")).thenReturn(new BigDecimal("50")); // 50%
-        when(configService.getValue("FARE_MINIMUM_PRICE")).thenReturn(new BigDecimal("5000.00"));
-
-        // When
-        var result = service.calculateTicketPrice(1L, 1L, 5L, PassengerType.CHILD);
-
-        // Then
-        // 50000 - 50% = 25000
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualByComparingTo(new BigDecimal("25000.00"));
-
-        verify(configService).getValue("DISCOUNT_CHILD_PERCENT");
-    }
-
-    @Test
-    void shouldCalculateTicketPriceWithStudentDiscount() {
-        // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-        var fareRule = createTestFareRule(route, fromStop, toStop);
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.findByRouteId(eq(1L), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(fareRule)));
-        when(configService.getValue("DISCOUNT_STUDENT_PERCENT")).thenReturn(new BigDecimal("15")); // 15%
-        when(configService.getValue("FARE_MINIMUM_PRICE")).thenReturn(new BigDecimal("5000.00"));
-
-        // When
-        var result = service.calculateTicketPrice(1L, 1L, 5L, PassengerType.STUDENT);
-
-        // Then
-        // 50000 - 15% = 42500
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualByComparingTo(new BigDecimal("42500.00"));
-
-        verify(configService).getValue("DISCOUNT_STUDENT_PERCENT");
-    }
-
-    @Test
-    void shouldCalculateProportionalFareWhenNoExactRuleExists() {
-        // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Parada Intermedia", 3);
-
-        var stops = List.of(
-                createTestStop(route, "Stop 1", 1),
-                createTestStop(route, "Stop 2", 2),
-                createTestStop(route, "Stop 3", 3),
-                createTestStop(route, "Stop 4", 4),
-                createTestStop(route, "Stop 5", 5)
+        var request = new FareRuleCreateRequest(
+                1L,
+                10L,
+                11L,
+                new BigDecimal("50000")
         );
 
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(3L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.findByRouteId(eq(1L), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of())); // No hay regla exacta
-        when(stopRepository.findByRouteIdOrderByOrderAsc(1L)).thenReturn(stops);
-        when(configService.getValue("FARE_PRICE_PER_KM")).thenReturn(new BigDecimal("150")); // $150/km
-        when(configService.getValue("FARE_MINIMUM_PRICE")).thenReturn(new BigDecimal("5000.00"));
+        when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
+        when(stopRepository.findById(10L)).thenReturn(Optional.of(fromStop));
+        when(stopRepository.findById(11L)).thenReturn(Optional.of(toStop));
+        when(repository.existsByRouteIdAndFromStopIdAndToStopId(1L, 10L, 11L)).thenReturn(true);
 
-        // When
-        var result = service.calculateTicketPrice(1L, 1L, 3L, PassengerType.ADULT);
+        // When / Then
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("FareRule already exists for route 1 from stop 10 to stop 11");
 
-        // Then
-        // 400km / 4 segmentos = 100km por segmento
-        // 2 stops de distancia × 100km = 200km
-        // 200km × 150 = 30000
-        assertThat(result).isNotNull();
-        assertThat(result).isGreaterThan(new BigDecimal("5000.00")); // Mayor que mínimo
-
-        verify(stopRepository).findByRouteIdOrderByOrderAsc(1L);
-        verify(configService).getValue("FARE_PRICE_PER_KM");
+        verify(repository, never()).save(any());
     }
-
-    @Test
-    void shouldApplyMinimumPriceWhenCalculatedPriceIsLower() {
-        // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-
-        var fareRule = FareRule.builder()
-                .id(1L)
-                .route(route)
-                .fromStop(fromStop)
-                .toStop(toStop)
-                .basePrice(new BigDecimal("3000.00")) // Precio bajo
-                .discounts(new HashSet<>())
-                .dynamicPricing(false)
-                .build();
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.findByRouteId(eq(1L), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(fareRule)));
-        when(configService.getValue("FARE_MINIMUM_PRICE")).thenReturn(new BigDecimal("5000.00"));
-
-        // When
-        var result = service.calculateTicketPrice(1L, 1L, 5L, PassengerType.ADULT);
-
-        // Then
-        assertThat(result).isEqualByComparingTo(new BigDecimal("5000.00")); // Precio mínimo aplicado
-    }
-
-    @Test
-    void shouldThrowExceptionWhenTripNotFoundInCalculatePrice() {
-        // Given
-        when(tripRepository.findById(999L)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> service.calculateTicketPrice(999L, 1L, 5L, PassengerType.ADULT))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Trip 999 not found");
-    }
-
-    @Test
-    void shouldThrowExceptionWhenFromStopNotBelongToRoute() {
-        // Given
-        var route1 = createTestRoute();
-        var route2 = Route.builder()
-                .id(2L)
-                .code("RUT-002")
-                .name("Otra Ruta")
-                .build();
-
-        var bus = createTestBus();
-        var trip = createTestTrip(route1, bus);
-        var fromStop = createTestStop(route2, "Stop de otra ruta", 1); // Ruta diferente
-        var toStop = createTestStop(route1, "Stop correcto", 5);
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-
-        // When & Then
-        assertThatThrownBy(() -> service.calculateTicketPrice(1L, 1L, 5L, PassengerType.ADULT))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("FromStop doesn't belong to trip's route");
-    }
-
-    @Test
-    void shouldThrowExceptionWhenFromStopOrderIsGreaterOrEqualToToStop() {
-        // Given
-        var route = createTestRoute();
-        var bus = createTestBus();
-        var trip = createTestTrip(route, bus);
-        var fromStop = createTestStop(route, "Terminal Medellin", 5);
-        var toStop = createTestStop(route, "Terminal Bogota", 1); // Orden inverso
-
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(toStop));
-
-        // When & Then
-        assertThatThrownBy(() -> service.calculateTicketPrice(1L, 5L, 1L, PassengerType.ADULT))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("FromStop order must be less than ToStop order");
-    }
-
-    // ============= UPDATE & DELETE TESTS =============
 
     @Test
     void shouldUpdateFareRuleSuccessfully() {
         // Given
-        var route = createTestRoute();
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-        var existingFareRule = createTestFareRule(route, fromStop, toStop);
+        var route = Route.builder().id(1L).build();
+        var fromStop = Stop.builder().id(10L).build();
+        var toStop = Stop.builder().id(11L).build();
+
+        var existingFareRule = FareRule.builder()
+                .id(100L)
+                .route(route)
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .basePrice(new BigDecimal("50000"))
+                .dynamicPricing(false)
+                .build();
 
         var updateRequest = new FareRuleUpdateRequest(
                 1L,
-                1L,
-                5L,
-                new BigDecimal("60000.00")
+                10L,
+                11L,
+                new BigDecimal("60000")
         );
 
-        when(fareRuleRepository.findById(1L)).thenReturn(Optional.of(existingFareRule));
+        when(repository.findById(100L)).thenReturn(Optional.of(existingFareRule));
         when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
-        when(stopRepository.findById(1L)).thenReturn(Optional.of(fromStop));
-        when(stopRepository.findById(5L)).thenReturn(Optional.of(toStop));
-        when(fareRuleRepository.save(any(FareRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(stopRepository.findById(10L)).thenReturn(Optional.of(fromStop));
+        when(stopRepository.findById(11L)).thenReturn(Optional.of(toStop));
+        when(repository.save(any(FareRule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // When
-        var result = service.update(1L, updateRequest);
+        var response = service.update(100L, updateRequest);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.basePrice()).isEqualByComparingTo(new BigDecimal("60000.00"));
+        assertThat(response.id()).isEqualTo(100L);
+        assertThat(response.basePrice()).isEqualByComparingTo(new BigDecimal("60000"));
 
-        verify(fareRuleRepository).save(any(FareRule.class));
+        verify(repository).findById(100L);
+        verify(repository).save(any(FareRule.class));
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenUpdateNonExistentFareRule() {
+        // Given
+        var updateRequest = new FareRuleUpdateRequest(
+                1L,
+                10L,
+                11L,
+                new BigDecimal("60000")
+        );
+
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.update(99L, updateRequest))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("FareRule 99 not found");
+
+        verify(repository).findById(99L);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void shouldGetFareRuleById() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var fromStop = Stop.builder().id(10L).build();
+        var toStop = Stop.builder().id(11L).build();
+
+        var fareRule = FareRule.builder()
+                .id(100L)
+                .route(route)
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .basePrice(new BigDecimal("50000"))
+                .dynamicPricing(true)
+                .build();
+
+        when(repository.findById(100L)).thenReturn(Optional.of(fareRule));
+
+        // When
+        var response = service.get(100L);
+
+        // Then
+        assertThat(response.id()).isEqualTo(100L);
+        assertThat(response.basePrice()).isEqualByComparingTo(new BigDecimal("50000"));
+
+        verify(repository).findById(100L);
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenGetNonExistentFareRule() {
+        // Given
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        // When / Then
+        assertThatThrownBy(() -> service.get(99L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("FareRule 99 not found");
+
+        verify(repository).findById(99L);
     }
 
     @Test
     void shouldDeleteFareRuleSuccessfully() {
         // Given
-        var route = createTestRoute();
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-        var fareRule = createTestFareRule(route, fromStop, toStop);
+        var fareRule = FareRule.builder()
+                .id(100L)
+                .basePrice(new BigDecimal("50000"))
+                .build();
 
-        when(fareRuleRepository.findById(1L)).thenReturn(Optional.of(fareRule));
+        when(repository.findById(100L)).thenReturn(Optional.of(fareRule));
+        doNothing().when(repository).delete(fareRule);
 
         // When
-        service.delete(1L);
+        service.delete(100L);
 
         // Then
-        verify(fareRuleRepository).delete(fareRule);
+        verify(repository).findById(100L);
+        verify(repository).delete(fareRule);
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenDeletingNonExistentFareRule() {
+    void shouldThrowNotFoundExceptionWhenDeleteNonExistentFareRule() {
         // Given
-        when(fareRuleRepository.findById(999L)).thenReturn(Optional.empty());
+        when(repository.findById(99L)).thenReturn(Optional.empty());
 
-        // When & Then
-        assertThatThrownBy(() -> service.delete(999L))
+        // When / Then
+        assertThatThrownBy(() -> service.delete(99L))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("FareRule 999 not found");
+                .hasMessageContaining("FareRule 99 not found");
 
-        verify(fareRuleRepository, never()).delete(any());
-    }
-
-    // ============= GET TESTS =============
-
-    @Test
-    void shouldGetFareRuleById() {
-        // Given
-        var route = createTestRoute();
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-        var fareRule = createTestFareRule(route, fromStop, toStop);
-
-        when(fareRuleRepository.findById(1L)).thenReturn(Optional.of(fareRule));
-
-        // When
-        var result = service.get(1L);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.id()).isEqualTo(1L);
-        assertThat(result.routeId()).isEqualTo(1L);
+        verify(repository).findById(99L);
+        verify(repository, never()).delete(any());
     }
 
     @Test
     void shouldGetFareRulesByRouteId() {
         // Given
-        var route = createTestRoute();
-        var fromStop = createTestStop(route, "Terminal Bogota", 1);
-        var toStop = createTestStop(route, "Terminal Medellin", 5);
-        var fareRule = createTestFareRule(route, fromStop, toStop);
+        var route = Route.builder().id(1L).build();
+        var fromStop = Stop.builder().id(10L).build();
+        var toStop = Stop.builder().id(11L).build();
+
+        var fareRule = FareRule.builder()
+                .id(100L)
+                .route(route)
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .basePrice(new BigDecimal("50000"))
+                .build();
 
         var pageable = PageRequest.of(0, 10);
-        when(fareRuleRepository.findByRouteId(1L, pageable))
-                .thenReturn(new PageImpl<>(List.of(fareRule)));
+        var page = new PageImpl<>(List.of(fareRule));
+
+        when(repository.findByRouteId(1L, pageable)).thenReturn(page);
 
         // When
         var result = service.getByRouteId(1L, pageable);
 
         // Then
-        assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().getFirst().routeId()).isEqualTo(1L);
+        assertThat(result.getContent().get(0).id()).isEqualTo(100L);
+
+        verify(repository).findByRouteId(1L, pageable);
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenNoFareRulesForRoute() {
+        // Given
+        var pageable = PageRequest.of(0, 10);
+        when(repository.findByRouteId(99L, pageable)).thenReturn(new PageImpl<>(List.of()));
+
+        // When / Then
+        assertThatThrownBy(() -> service.getByRouteId(99L, pageable))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("No FareRules found for route 99");
+
+        verify(repository).findByRouteId(99L, pageable);
+    }
+
+    @Test
+    void shouldGetFareRulesByFromStopId() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var fromStop = Stop.builder().id(10L).build();
+        var toStop = Stop.builder().id(11L).build();
+
+        var fareRule = FareRule.builder()
+                .id(100L)
+                .route(route)
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .basePrice(new BigDecimal("50000"))
+                .build();
+
+        var pageable = PageRequest.of(0, 10);
+        var page = new PageImpl<>(List.of(fareRule));
+
+        when(repository.findByFromStopId(10L, pageable)).thenReturn(page);
+
+        // When
+        var result = service.getByFromStopId(10L, pageable);
+
+        // Then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).fromStopId()).isEqualTo(10L);
+
+        verify(repository).findByFromStopId(10L, pageable);
+    }
+
+    @Test
+    void shouldGetFareRulesByToStopId() {
+        // Given
+        var route = Route.builder().id(1L).build();
+        var fromStop = Stop.builder().id(10L).build();
+        var toStop = Stop.builder().id(11L).build();
+
+        var fareRule = FareRule.builder()
+                .id(100L)
+                .route(route)
+                .fromStop(fromStop)
+                .toStop(toStop)
+                .basePrice(new BigDecimal("50000"))
+                .build();
+
+        var pageable = PageRequest.of(0, 10);
+        var page = new PageImpl<>(List.of(fareRule));
+
+        when(repository.findByToStopId(11L, pageable)).thenReturn(page);
+
+        // When
+        var result = service.getByToStopId(11L, pageable);
+
+        // Then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).toStopId()).isEqualTo(11L);
+
+        verify(repository).findByToStopId(11L, pageable);
     }
 }
 

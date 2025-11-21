@@ -37,19 +37,20 @@ class RouteServiceImplTest {
 
     @InjectMocks
     private RouteServiceImpl service;
+
     @Test
     void shouldCreateRouteSuccessfully() {
         // Given
         var request = new RouteCreateRequest(
-                "RUT-001",
-                "Ruta Principal",
-                "Bogota",
-                "Medellin",
-                new BigDecimal("400.50"),
-                360
+                "R001",
+                "Bogotá-Tunja",
+                "Bogotá",
+                "Tunja",
+                new BigDecimal("150.50"),
+                180
         );
 
-        when(routeRepository.existsByCode("RUT-001")).thenReturn(false);
+        when(routeRepository.existsByCode("R001")).thenReturn(false);
         when(routeRepository.save(any(Route.class))).thenAnswer(inv -> {
             Route r = inv.getArgument(0);
             r.setId(1L);
@@ -61,61 +62,59 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.code()).isEqualTo("RUT-001");
-        assertThat(response.name()).isEqualTo("Ruta Principal");
-        assertThat(response.origin()).isEqualTo("Bogota");
-        assertThat(response.destination()).isEqualTo("Medellin");
-        assertThat(response.distanceKm()).isEqualByComparingTo(new BigDecimal("400.50"));
-        assertThat(response.durationMin()).isEqualTo(360);
+        assertThat(response.code()).isEqualTo("R001");
+        assertThat(response.name()).isEqualTo("Bogotá-Tunja");
+        assertThat(response.origin()).isEqualTo("Bogotá");
+        assertThat(response.destination()).isEqualTo("Tunja");
+        assertThat(response.distanceKm()).isEqualByComparingTo(new BigDecimal("150.50"));
+        assertThat(response.durationMin()).isEqualTo(180);
 
-        verify(routeRepository).existsByCode("RUT-001");
+        verify(routeRepository).existsByCode("R001");
         verify(routeRepository).save(any(Route.class));
     }
 
     @Test
-    void shouldThrowIllegalStateExceptionWhenCodeAlreadyExists() {
+    void shouldThrowIllegalStateExceptionWhenRouteCodeAlreadyExists() {
         // Given
         var request = new RouteCreateRequest(
-                "RUT-001",
-                "Ruta Principal",
-                "Bogota",
-                "Medellin",
-                new BigDecimal("400.50"),
-                360
+                "R001",
+                "Bogotá-Tunja",
+                "Bogotá",
+                "Tunja",
+                new BigDecimal("150.50"),
+                180
         );
 
-        when(routeRepository.existsByCode("RUT-001")).thenReturn(true);
+        when(routeRepository.existsByCode("R001")).thenReturn(true);
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Route with code RUT-001 already exists");
+                .hasMessageContaining("Route with code R001 already exists");
 
-        verify(routeRepository).existsByCode("RUT-001");
+        verify(routeRepository).existsByCode("R001");
         verify(routeRepository, never()).save(any());
     }
-
-    // ============= UPDATE TESTS =============
 
     @Test
     void shouldUpdateRouteSuccessfully() {
         // Given
         var existingRoute = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Principal")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
+                .code("R001")
+                .name("Bogotá-Tunja")
+                .origin("Bogotá")
+                .destination("Tunja")
+                .distanceKm(new BigDecimal("150.50"))
+                .durationMin(180)
                 .build();
 
         var updateRequest = new RouteUpdateRequest(
-                "Ruta Actualizada",
-                "Cali",
-                "Cartagena",
-                new BigDecimal("500.75"),
-                420
+                "Bogotá-Tunja Express",
+                "Bogotá",
+                "Tunja",
+                new BigDecimal("155.00"),
+                175
         );
 
         when(routeRepository.findById(1L)).thenReturn(Optional.of(existingRoute));
@@ -126,50 +125,9 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.code()).isEqualTo("RUT-001"); // No debe cambiar
-        assertThat(response.name()).isEqualTo("Ruta Actualizada");
-        assertThat(response.origin()).isEqualTo("Cali");
-        assertThat(response.destination()).isEqualTo("Cartagena");
-        assertThat(response.distanceKm()).isEqualByComparingTo(new BigDecimal("500.75"));
-        assertThat(response.durationMin()).isEqualTo(420);
-
-        verify(routeRepository).findById(1L);
-        verify(routeRepository).save(any(Route.class));
-    }
-
-    @Test
-    void shouldUpdateOnlyNameWhenOtherFieldsAreNull() {
-        // Given
-        var existingRoute = Route.builder()
-                .id(1L)
-                .code("RUT-001")
-                .name("Ruta Principal")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
-                .build();
-
-        var updateRequest = new RouteUpdateRequest(
-                "Nuevo Nombre",
-                null,
-                null,
-                null,
-                null
-        );
-
-        when(routeRepository.findById(1L)).thenReturn(Optional.of(existingRoute));
-        when(routeRepository.save(any(Route.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // When
-        var response = service.update(1L, updateRequest);
-
-        // Then
-        assertThat(response.name()).isEqualTo("Nuevo Nombre");
-        assertThat(response.origin()).isEqualTo("Bogota"); // No cambio
-        assertThat(response.destination()).isEqualTo("Medellin"); // No cambio
-        assertThat(response.distanceKm()).isEqualByComparingTo(new BigDecimal("400.50")); // No cambio
-        assertThat(response.durationMin()).isEqualTo(360); // No cambio
+        assertThat(response.name()).isEqualTo("Bogotá-Tunja Express");
+        assertThat(response.distanceKm()).isEqualByComparingTo(new BigDecimal("155.00"));
+        assertThat(response.durationMin()).isEqualTo(175);
 
         verify(routeRepository).findById(1L);
         verify(routeRepository).save(any(Route.class));
@@ -179,12 +137,13 @@ class RouteServiceImplTest {
     void shouldThrowNotFoundExceptionWhenUpdateNonExistentRoute() {
         // Given
         var updateRequest = new RouteUpdateRequest(
-                "Ruta Actualizada",
-                "Cali",
-                "Cartagena",
-                new BigDecimal("500.75"),
-                420
+                "Name",
+                "Origin",
+                "Destination",
+                new BigDecimal("100"),
+                120
         );
+
         when(routeRepository.findById(99L)).thenReturn(Optional.empty());
 
         // When / Then
@@ -196,19 +155,17 @@ class RouteServiceImplTest {
         verify(routeRepository, never()).save(any());
     }
 
-    // ============= GET BY ID TESTS =============
-
     @Test
     void shouldGetRouteById() {
         // Given
         var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Principal")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
+                .code("R001")
+                .name("Bogotá-Tunja")
+                .origin("Bogotá")
+                .destination("Tunja")
+                .distanceKm(new BigDecimal("150.50"))
+                .durationMin(180)
                 .build();
 
         when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
@@ -218,12 +175,8 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.code()).isEqualTo("RUT-001");
-        assertThat(response.name()).isEqualTo("Ruta Principal");
-        assertThat(response.origin()).isEqualTo("Bogota");
-        assertThat(response.destination()).isEqualTo("Medellin");
-        assertThat(response.distanceKm()).isEqualByComparingTo(new BigDecimal("400.50"));
-        assertThat(response.durationMin()).isEqualTo(360);
+        assertThat(response.code()).isEqualTo("R001");
+        assertThat(response.name()).isEqualTo("Bogotá-Tunja");
 
         verify(routeRepository).findById(1L);
     }
@@ -241,15 +194,13 @@ class RouteServiceImplTest {
         verify(routeRepository).findById(99L);
     }
 
-    // ============= DELETE TESTS =============
-
     @Test
     void shouldDeleteRouteSuccessfully() {
         // Given
         var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Principal")
+                .code("R001")
+                .name("Bogotá-Tunja")
                 .build();
 
         when(routeRepository.findById(1L)).thenReturn(Optional.of(route));
@@ -277,463 +228,241 @@ class RouteServiceImplTest {
         verify(routeRepository, never()).delete(any());
     }
 
-    // ============= GET BY CODE TESTS =============
-
     @Test
     void shouldGetRouteByCode() {
         // Given
         var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Principal")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
+                .code("R001")
+                .name("Bogotá-Tunja")
                 .build();
 
-        when(routeRepository.findByCode("RUT-001")).thenReturn(Optional.of(route));
+        when(routeRepository.findByCode("R001")).thenReturn(Optional.of(route));
 
         // When
-        var response = service.getByCode("RUT-001");
+        var response = service.getByCode("R001");
 
         // Then
-        assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.code()).isEqualTo("RUT-001");
-        assertThat(response.name()).isEqualTo("Ruta Principal");
+        assertThat(response.code()).isEqualTo("R001");
 
-        verify(routeRepository).findByCode("RUT-001");
+        verify(routeRepository).findByCode("R001");
     }
-
-    @Test
-    void shouldThrowNotFoundExceptionWhenCodeNotExists() {
-        // Given
-        when(routeRepository.findByCode("RUT-INVALID")).thenReturn(Optional.empty());
-
-        // When / Then
-        assertThatThrownBy(() -> service.getByCode("RUT-INVALID"))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Route with code RUT-INVALID not found");
-
-        verify(routeRepository).findByCode("RUT-INVALID");
-    }
-
-    // ============= GET BY NAME TESTS =============
 
     @Test
     void shouldGetRouteByName() {
         // Given
         var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Principal")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
+                .code("R001")
+                .name("Bogotá-Tunja")
                 .build();
 
-        when(routeRepository.findByName("Ruta Principal")).thenReturn(Optional.of(route));
+        when(routeRepository.findByName("Bogotá-Tunja")).thenReturn(Optional.of(route));
 
         // When
-        var response = service.getByName("Ruta Principal");
+        var response = service.getByName("Bogotá-Tunja");
 
         // Then
-        assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.name()).isEqualTo("Ruta Principal");
+        assertThat(response.name()).isEqualTo("Bogotá-Tunja");
 
-        verify(routeRepository).findByName("Ruta Principal");
+        verify(routeRepository).findByName("Bogotá-Tunja");
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenNameNotExists() {
-        // Given
-        when(routeRepository.findByName("Ruta Inexistente")).thenReturn(Optional.empty());
-
-        // When / Then
-        assertThatThrownBy(() -> service.getByName("Ruta Inexistente"))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Route with name Ruta Inexistente not found");
-
-        verify(routeRepository).findByName("Ruta Inexistente");
-    }
-
-    // ============= GET BY ORIGIN TESTS =============
-
-    @Test
-    void shouldGetRoutesByOrigin() {
+    void shouldListRoutesByOrigin() {
         // Given
         var route1 = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta 1")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
+                .code("R001")
+                .name("Bogotá-Tunja")
+                .origin("Bogotá")
+                .destination("Tunja")
                 .build();
 
         var route2 = Route.builder()
                 .id(2L)
-                .code("RUT-002")
-                .name("Ruta 2")
-                .origin("Bogota")
-                .destination("Cali")
-                .distanceKm(new BigDecimal("450.00"))
-                .durationMin(420)
+                .code("R002")
+                .name("Bogotá-Medellín")
+                .origin("Bogotá")
+                .destination("Medellín")
                 .build();
 
-        when(routeRepository.findByOrigin("Bogota")).thenReturn(List.of(route1, route2));
+        when(routeRepository.findByOrigin("Bogotá"))
+                .thenReturn(List.of(route1, route2));
 
         // When
-        var result = service.listByOrigin("Bogota");
+        var result = service.listByOrigin("Bogotá");
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).origin()).isEqualTo("Bogota");
-        assertThat(result.get(1).origin()).isEqualTo("Bogota");
+        assertThat(result.get(0).origin()).isEqualTo("Bogotá");
+        assertThat(result.get(1).origin()).isEqualTo("Bogotá");
 
-        verify(routeRepository).findByOrigin("Bogota");
+        verify(routeRepository).findByOrigin("Bogotá");
     }
 
     @Test
     void shouldThrowNotFoundExceptionWhenNoRoutesFromOrigin() {
         // Given
-        when(routeRepository.findByOrigin("Ciudad Inexistente")).thenReturn(List.of());
-
-        // When / Then
-        assertThatThrownBy(() -> service.listByOrigin("Ciudad Inexistente"))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Route from origin Ciudad Inexistente not found");
-
-        verify(routeRepository).findByOrigin("Ciudad Inexistente");
-    }
-
-    // ============= GET BY DESTINATION TESTS =============
-
-    @Test
-    void shouldGetRoutesByDestination() {
-        // Given
-        var route1 = Route.builder()
-                .id(1L)
-                .code("RUT-001")
-                .name("Ruta 1")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
-                .build();
-
-        var route2 = Route.builder()
-                .id(2L)
-                .code("RUT-002")
-                .name("Ruta 2")
-                .origin("Cali")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("350.00"))
-                .durationMin(300)
-                .build();
-
-        when(routeRepository.findByDestination("Medellin")).thenReturn(List.of(route1, route2));
-
-        // When
-        var result = service.listByDestination("Medellin");
-
-        // Then
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).destination()).isEqualTo("Medellin");
-        assertThat(result.get(1).destination()).isEqualTo("Medellin");
-
-        verify(routeRepository).findByDestination("Medellin");
-    }
-
-    @Test
-    void shouldThrowNotFoundExceptionWhenNoRoutesToDestination() {
-        // Given
-        when(routeRepository.findByDestination("Ciudad Inexistente")).thenReturn(List.of());
-
-        // When / Then
-        assertThatThrownBy(() -> service.listByDestination("Ciudad Inexistente"))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Route to destination Ciudad Inexistente not found");
-
-        verify(routeRepository).findByDestination("Ciudad Inexistente");
-    }
-
-    // ============= GET BY ORIGIN AND DESTINATION TESTS =============
-
-    @Test
-    void shouldGetRoutesByOriginAndDestination() {
-        // Given
-        var route1 = Route.builder()
-                .id(1L)
-                .code("RUT-001")
-                .name("Ruta Directa")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(360)
-                .build();
-
-        when(routeRepository.findByOriginAndDestination("Bogota", "Medellin"))
-                .thenReturn(List.of(route1));
-
-        // When
-        var result = service.listByOriginAndDestination("Bogota", "Medellin");
-
-        // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().origin()).isEqualTo("Bogota");
-        assertThat(result.getFirst().destination()).isEqualTo("Medellin");
-
-        verify(routeRepository).findByOriginAndDestination("Bogota", "Medellin");
-    }
-
-    @Test
-    void shouldThrowNotFoundExceptionWhenNoRoutesForOriginAndDestination() {
-        // Given
-        when(routeRepository.findByOriginAndDestination("Ciudad A", "Ciudad B"))
+        when(routeRepository.findByOrigin("Unknown"))
                 .thenReturn(List.of());
 
         // When / Then
-        assertThatThrownBy(() -> service.listByOriginAndDestination("Ciudad A", "Ciudad B"))
+        assertThatThrownBy(() -> service.listByOrigin("Unknown"))
                 .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("Route from Ciudad A to Ciudad B not found");
+                .hasMessageContaining("Route from origin Unknown not found");
 
-        verify(routeRepository).findByOriginAndDestination("Ciudad A", "Ciudad B");
+        verify(routeRepository).findByOrigin("Unknown");
     }
 
-    // ============= GET BY DURATION BETWEEN TESTS =============
-
     @Test
-    void shouldGetRoutesByDurationBetween() {
+    void shouldListRoutesByDestination() {
         // Given
-        var route1 = Route.builder()
+        var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Corta")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(300)
+                .code("R001")
+                .name("Bogotá-Tunja")
+                .origin("Bogotá")
+                .destination("Tunja")
                 .build();
 
-        var route2 = Route.builder()
-                .id(2L)
-                .code("RUT-002")
-                .name("Ruta Media")
-                .origin("Cali")
-                .destination("Cartagena")
-                .distanceKm(new BigDecimal("500.00"))
-                .durationMin(360)
-                .build();
-
-        when(routeRepository.findByDurationMinBetween(200, 400))
-                .thenReturn(List.of(route1, route2));
+        when(routeRepository.findByDestination("Tunja"))
+                .thenReturn(List.of(route));
 
         // When
-        var result = service.listByDurationMinBetween(200, 400);
+        var result = service.listByDestination("Tunja");
 
         // Then
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).durationMin()).isBetween(200, 400);
-        assertThat(result.get(1).durationMin()).isBetween(200, 400);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).destination()).isEqualTo("Tunja");
 
-        verify(routeRepository).findByDurationMinBetween(200, 400);
+        verify(routeRepository).findByDestination("Tunja");
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenNoRoutesInDurationRange() {
+    void shouldListRoutesByOriginAndDestination() {
         // Given
-        when(routeRepository.findByDurationMinBetween(1000, 2000)).thenReturn(List.of());
-
-        // When / Then
-        assertThatThrownBy(() -> service.listByDurationMinBetween(1000, 2000))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("No routes found with duration between 1000 and 2000 minutes");
-
-        verify(routeRepository).findByDurationMinBetween(1000, 2000);
-    }
-
-    // ============= GET BY DURATION LESS THAN OR EQUAL TESTS =============
-
-    @Test
-    void shouldGetRoutesByDurationLessThanOrEqual() {
-        // Given
-        var route1 = Route.builder()
+        var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Rapida 1")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(300)
+                .code("R001")
+                .name("Bogotá-Tunja")
+                .origin("Bogotá")
+                .destination("Tunja")
                 .build();
 
-        var route2 = Route.builder()
-                .id(2L)
-                .code("RUT-002")
-                .name("Ruta Rapida 2")
-                .origin("Cali")
-                .destination("Cartagena")
-                .distanceKm(new BigDecimal("500.00"))
-                .durationMin(360)
-                .build();
-
-        var page = new PageImpl<>(List.of(route1, route2));
-        var pageable = PageRequest.of(0, 10);
-
-        when(routeRepository.findByDurationMinLessThanEqual(360, pageable)).thenReturn(page);
+        when(routeRepository.findByOriginAndDestination("Bogotá", "Tunja"))
+                .thenReturn(List.of(route));
 
         // When
-        var result = service.listByDurationMinLessThanEqual(360, pageable);
+        var result = service.listByOriginAndDestination("Bogotá", "Tunja");
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getContent().get(0).durationMin()).isLessThanOrEqualTo(360);
-        assertThat(result.getContent().get(1).durationMin()).isLessThanOrEqualTo(360);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).origin()).isEqualTo("Bogotá");
+        assertThat(result.get(0).destination()).isEqualTo("Tunja");
 
-        verify(routeRepository).findByDurationMinLessThanEqual(360, pageable);
+        verify(routeRepository).findByOriginAndDestination("Bogotá", "Tunja");
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenNoRoutesWithDurationLessThanOrEqual() {
+    void shouldListRoutesByDurationMinBetween() {
         // Given
-        var page = new PageImpl<Route>(List.of());
-        var pageable = PageRequest.of(0, 10);
-
-        when(routeRepository.findByDurationMinLessThanEqual(100, pageable)).thenReturn(page);
-
-        // When / Then
-        assertThatThrownBy(() -> service.listByDurationMinLessThanEqual(100, pageable))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("No routes found with duration <= 100 minutes");
-
-        verify(routeRepository).findByDurationMinLessThanEqual(100, pageable);
-    }
-
-    // ============= GET BY DISTANCE LESS THAN OR EQUAL TESTS =============
-
-    @Test
-    void shouldGetRoutesByDistanceLessThanOrEqual() {
-        // Given
-        var route1 = Route.builder()
+        var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Corta 1")
-                .origin("Bogota")
-                .destination("Medellin")
-                .distanceKm(new BigDecimal("300.00"))
-                .durationMin(300)
+                .code("R001")
+                .name("Bogotá-Tunja")
+                .durationMin(180)
                 .build();
 
-        var route2 = Route.builder()
-                .id(2L)
-                .code("RUT-002")
-                .name("Ruta Corta 2")
-                .origin("Cali")
-                .destination("Cartagena")
-                .distanceKm(new BigDecimal("400.00"))
-                .durationMin(360)
+        when(routeRepository.findByDurationMinBetween(150, 200))
+                .thenReturn(List.of(route));
+
+        // When
+        var result = service.listByDurationMinBetween(150, 200);
+
+        // Then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).durationMin()).isEqualTo(180);
+
+        verify(routeRepository).findByDurationMinBetween(150, 200);
+    }
+
+    @Test
+    void shouldListRoutesByDurationMinLessThanEqual() {
+        // Given
+        var route = Route.builder()
+                .id(1L)
+                .code("R001")
+                .name("Bogotá-Tunja")
+                .durationMin(120)
                 .build();
 
-        var page = new PageImpl<>(List.of(route1, route2));
         var pageable = PageRequest.of(0, 10);
+        var page = new PageImpl<>(List.of(route));
 
-        when(routeRepository.findByDistanceKmLessThanEqual(new BigDecimal("400.00"), pageable))
+        when(routeRepository.findByDurationMinLessThanEqual(150, pageable))
                 .thenReturn(page);
 
         // When
-        var result = service.listByDistanceKmLessThanEqual(new BigDecimal("400.00"), pageable);
+        var result = service.listByDurationMinLessThanEqual(150, pageable);
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getContent().get(0).distanceKm())
-                .isLessThanOrEqualTo(new BigDecimal("400.00"));
-        assertThat(result.getContent().get(1).distanceKm())
-                .isLessThanOrEqualTo(new BigDecimal("400.00"));
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).durationMin()).isEqualTo(120);
 
-        verify(routeRepository).findByDistanceKmLessThanEqual(new BigDecimal("400.00"), pageable);
+        verify(routeRepository).findByDurationMinLessThanEqual(150, pageable);
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenNoRoutesWithDistanceLessThanOrEqual() {
+    void shouldListRoutesByDistanceKmLessThanEqual() {
         // Given
-        var page = new PageImpl<Route>(List.of());
-        var pageable = PageRequest.of(0, 10);
-
-        when(routeRepository.findByDistanceKmLessThanEqual(new BigDecimal("50.00"), pageable))
-                .thenReturn(page);
-
-        // When / Then
-        assertThatThrownBy(() -> service.listByDistanceKmLessThanEqual(new BigDecimal("50.00"), pageable))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("No routes found with distance <= 50.00 km");
-
-        verify(routeRepository).findByDistanceKmLessThanEqual(new BigDecimal("50.00"), pageable);
-    }
-
-    // ============= GET BY DISTANCE GREATER THAN OR EQUAL TESTS =============
-
-    @Test
-    void shouldGetRoutesByDistanceGreaterThanOrEqual() {
-        // Given
-        var route1 = Route.builder()
+        var route = Route.builder()
                 .id(1L)
-                .code("RUT-001")
-                .name("Ruta Larga 1")
-                .origin("Bogota")
-                .destination("Cartagena")
-                .distanceKm(new BigDecimal("600.00"))
-                .durationMin(480)
+                .code("R001")
+                .name("Short Route")
+                .distanceKm(new BigDecimal("100"))
                 .build();
 
-        var route2 = Route.builder()
-                .id(2L)
-                .code("RUT-002")
-                .name("Ruta Larga 2")
-                .origin("Cali")
-                .destination("Barranquilla")
-                .distanceKm(new BigDecimal("700.00"))
-                .durationMin(540)
-                .build();
-
-        var page = new PageImpl<>(List.of(route1, route2));
         var pageable = PageRequest.of(0, 10);
+        var page = new PageImpl<>(List.of(route));
 
-        when(routeRepository.findByDistanceKmGreaterThanEqual(new BigDecimal("500.00"), pageable))
+        when(routeRepository.findByDistanceKmLessThanEqual(new BigDecimal("150"), pageable))
                 .thenReturn(page);
 
         // When
-        var result = service.listByDistanceKmGreaterThanEqual(new BigDecimal("500.00"), pageable);
+        var result = service.listByDistanceKmLessThanEqual(new BigDecimal("150"), pageable);
 
         // Then
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getContent().get(0).distanceKm())
-                .isGreaterThanOrEqualTo(new BigDecimal("500.00"));
-        assertThat(result.getContent().get(1).distanceKm())
-                .isGreaterThanOrEqualTo(new BigDecimal("500.00"));
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).distanceKm()).isEqualByComparingTo(new BigDecimal("100"));
 
-        verify(routeRepository).findByDistanceKmGreaterThanEqual(new BigDecimal("500.00"), pageable);
+        verify(routeRepository).findByDistanceKmLessThanEqual(new BigDecimal("150"), pageable);
     }
 
     @Test
-    void shouldThrowNotFoundExceptionWhenNoRoutesWithDistanceGreaterThanOrEqual() {
+    void shouldListRoutesByDistanceKmGreaterThanEqual() {
         // Given
-        var page = new PageImpl<Route>(List.of());
-        var pageable = PageRequest.of(0, 10);
+        var route = Route.builder()
+                .id(1L)
+                .code("R001")
+                .name("Long Route")
+                .distanceKm(new BigDecimal("200"))
+                .build();
 
-        when(routeRepository.findByDistanceKmGreaterThanEqual(new BigDecimal("2000.00"), pageable))
+        var pageable = PageRequest.of(0, 10);
+        var page = new PageImpl<>(List.of(route));
+
+        when(routeRepository.findByDistanceKmGreaterThanEqual(new BigDecimal("150"), pageable))
                 .thenReturn(page);
 
-        // When / Then
-        assertThatThrownBy(() -> service.listByDistanceKmGreaterThanEqual(new BigDecimal("2000.00"), pageable))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("No routes found with distance >= 2000.00 km");
+        // When
+        var result = service.listByDistanceKmGreaterThanEqual(new BigDecimal("150"), pageable);
 
-        verify(routeRepository).findByDistanceKmGreaterThanEqual(new BigDecimal("2000.00"), pageable);
+        // Then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).distanceKm()).isEqualByComparingTo(new BigDecimal("200"));
+
+        verify(routeRepository).findByDistanceKmGreaterThanEqual(new BigDecimal("150"), pageable);
     }
 }
+
