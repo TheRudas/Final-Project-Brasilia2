@@ -34,6 +34,7 @@ public class TicketServiceImpl implements TicketService {
     private final UserRepository userRepository;
     private final StopRepository stopRepository;
     private final SeatRepository seatRepository;
+    private final SeatHoldRepository seatHoldRepository;
     private final TicketMapper mapper;
     private final ConfigService configService;
     private final SeatHoldRepository seatHoldRepository;
@@ -106,7 +107,6 @@ public class TicketServiceImpl implements TicketService {
                     hold.setStatus(SeatHoldStatus.EXPIRED);
                     seatHoldRepository.save(hold);
                 });
-
 
         return mapper.toResponse(ticketRepository.save(ticket));
     }
