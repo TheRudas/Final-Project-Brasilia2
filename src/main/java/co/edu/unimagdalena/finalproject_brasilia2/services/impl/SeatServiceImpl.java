@@ -34,6 +34,15 @@ public class SeatServiceImpl implements SeatService {
             throw new IllegalStateException("seat %s already exists in this bus".formatted(request.number()));
         }
 
+        //verify capacity isn't exceeded
+        Long currentSeats = seatRepository.countByBusId(request.busId());
+        if (currentSeats >= bus.getCapacity()) {
+            throw new IllegalStateException(
+                    "Bus capacity exceeded: %d/%d seats already registered"
+                            .formatted(currentSeats, bus.getCapacity())
+            );
+        }
+
         var seat = mapper.toEntity(request);
         seat.setBus(bus);
         return mapper.toResponse(seatRepository.save(seat));

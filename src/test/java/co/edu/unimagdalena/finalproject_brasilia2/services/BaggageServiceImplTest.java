@@ -38,6 +38,9 @@ class BaggageServiceImplTest {
     @Mock
     private TicketRepository ticketRepository;
 
+    @Mock
+    private ConfigService configService;
+
     @Spy
     private BaggageMapper mapper = Mappers.getMapper(BaggageMapper.class);
 
@@ -55,17 +58,17 @@ class BaggageServiceImplTest {
         var ticket = Ticket.builder()
                 .id(5L)
                 .passenger(passenger)
+                .status(co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus.SOLD)
                 .build();
 
         var request = new BaggageCreateRequest(
                 5L,
-                new BigDecimal("15.50"),
-                new BigDecimal("25000.00"),
-                "BAG-ABC12345"
+                new BigDecimal("25.00") // 25kg - tagCode y fee se autogeneran
         );
 
         when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
-        when(baggageRepository.findByTagCode("BAG-ABC12345")).thenReturn(Optional.empty());
+        when(configService.getValue("BAGGAGE_MAX_FREE_WEIGHT_KG")).thenReturn(new BigDecimal("20"));
+        when(configService.getValue("BAGGAGE_FEE_PER_EXCESS_KG")).thenReturn(new BigDecimal("2000"));
         when(baggageRepository.save(any(Baggage.class))).thenAnswer(inv -> {
             Baggage b = inv.getArgument(0);
             b.setId(10L);
@@ -79,12 +82,14 @@ class BaggageServiceImplTest {
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.ticketId()).isEqualTo(5L);
         assertThat(response.passengerName()).isEqualTo("Juan Perez");
-        assertThat(response.weightKg()).isEqualByComparingTo(new BigDecimal("15.50"));
-        assertThat(response.fee()).isEqualByComparingTo(new BigDecimal("25000.00"));
-        assertThat(response.tagCode()).isEqualTo("BAG-ABC12345");
+        assertThat(response.weightKg()).isEqualByComparingTo(new BigDecimal("25.00"));
+        // Fee calculado: (25 - 20) * 2000 = 10000
+        assertThat(response.fee()).isEqualByComparingTo(new BigDecimal("10000"));
+        assertThat(response.tagCode()).startsWith("BAG-"); // Auto-generado
 
         verify(ticketRepository).findById(5L);
-        verify(baggageRepository).findByTagCode("BAG-ABC12345");
+        verify(configService).getValue("BAGGAGE_MAX_FREE_WEIGHT_KG");
+        verify(configService).getValue("BAGGAGE_FEE_PER_EXCESS_KG");
         verify(baggageRepository).save(any(Baggage.class));
     }
 
@@ -93,9 +98,7 @@ class BaggageServiceImplTest {
         // Given
         var request = new BaggageCreateRequest(
                 99L,
-                new BigDecimal("15.50"),
-                new BigDecimal("25000.00"),
-                "BAG-ABC12345"
+                new BigDecimal("15.50")
         );
         when(ticketRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -105,37 +108,31 @@ class BaggageServiceImplTest {
                 .hasMessageContaining("Ticket not found with id: 99");
 
         verify(ticketRepository).findById(99L);
-        verify(baggageRepository, never()).findByTagCode(any());
         verify(baggageRepository, never()).save(any());
     }
 
     @Test
-    void shouldThrowIllegalStateExceptionWhenTagCodeAlreadyExists() {
+    void shouldThrowIllegalStateExceptionWhenTicketNotSold() {
         // Given
-        var ticket = Ticket.builder().id(5L).build();
-        var existingBaggage = Baggage.builder()
-                .id(1L)
-                .tagCode("BAG-ABC12345")
+        var ticket = Ticket.builder()
+                .id(5L)
+                .status(co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus.CANCELLED)
                 .build();
 
         var request = new BaggageCreateRequest(
                 5L,
-                new BigDecimal("15.50"),
-                new BigDecimal("25000.00"),
-                "BAG-ABC12345"
+                new BigDecimal("15.50")
         );
 
         when(ticketRepository.findById(5L)).thenReturn(Optional.of(ticket));
-        when(baggageRepository.findByTagCode("BAG-ABC12345"))
-                .thenReturn(Optional.of(existingBaggage));
 
         // When / Then
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Baggage tag BAG-ABC12345 already exists");
+                .hasMessageContaining("Cannot add baggage to a NON-SOLD ticket");
 
         verify(ticketRepository).findById(5L);
-        verify(baggageRepository).findByTagCode("BAG-ABC12345");
+        verify(configService, never()).getValue(any());
         verify(baggageRepository, never()).save(any());
     }
 
@@ -373,7 +370,7 @@ class BaggageServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).id()).isEqualTo(10L);
+        assertThat(result.getFirst().id()).isEqualTo(10L);
         assertThat(result.get(0).tagCode()).isEqualTo("BAG-AAA11111");
         assertThat(result.get(0).passengerName()).isEqualTo("Pedro Sanchez");
         assertThat(result.get(1).id()).isEqualTo(11L);
@@ -637,8 +634,8 @@ class BaggageServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).id()).isEqualTo(10L);
-        assertThat(result.get(0).ticketId()).isEqualTo(5L);
+        assertThat(result.getFirst().id()).isEqualTo(10L);
+        assertThat(result.getFirst().ticketId()).isEqualTo(5L);
         assertThat(result.get(0).tagCode()).isEqualTo("BAG-III99999");
         assertThat(result.get(0).passengerName()).isEqualTo("Roberto Diaz");
         assertThat(result.get(1).id()).isEqualTo(11L);

@@ -7,8 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,16 +15,16 @@ import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+public class AssignmentRepositoryTest extends AbstractRepositoryIT {
 
-class AssignmentRepositoryTest extends AbstractRepositoryIT {
     @Autowired
     private AssignmentRepository assignmentRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private TripRepository tripRepository;
 
     @Autowired
-    private TripRepository tripRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private BusRepository busRepository;
@@ -35,173 +34,182 @@ class AssignmentRepositoryTest extends AbstractRepositoryIT {
 
     private User driver1;
     private User driver2;
-    private User dispatcher;
+    private User dispatcher1;
     private Trip trip1;
     private Trip trip2;
     private Trip trip3;
-    private Bus bus;
-    private Route route;
     private Assignment assignment1;
     private Assignment assignment2;
     private Assignment assignment3;
-    private OffsetDateTime baseTime;
 
     @BeforeEach
     void setUp() {
         assignmentRepository.deleteAll();
         tripRepository.deleteAll();
+        userRepository.deleteAll();
         busRepository.deleteAll();
         routeRepository.deleteAll();
-        userRepository.deleteAll();
 
-        baseTime = OffsetDateTime.now();
-
-        // Crear conductores
+        // Create drivers
         driver1 = User.builder()
-                .name("Juan Pérez")
-                .email("juan@example.com")
+                .name("Juan Perez")
+                .email("juan.perez@bus.com")
                 .phone("3001234567")
+                .passwordHash("hashed_password_123")
                 .role(UserRole.DRIVER)
                 .status(true)
-                .passwordHash("hash123")
-                .createdAt(baseTime)
+                .createdAt(OffsetDateTime.now())
                 .build();
+        driver1 = userRepository.save(driver1);
 
         driver2 = User.builder()
-                .name("María García")
-                .email("maria@example.com")
-                .phone("3007654321")
+                .name("Maria Garcia")
+                .email("maria.garcia@bus.com")
+                .phone("3107654321")
+                .passwordHash("hashed_password_456")
                 .role(UserRole.DRIVER)
                 .status(true)
-                .passwordHash("hash456")
-                .createdAt(baseTime)
+                .createdAt(OffsetDateTime.now())
                 .build();
+        driver2 = userRepository.save(driver2);
 
-        // Crear despachador
-        dispatcher = User.builder()
+        // Create dispatcher
+        dispatcher1 = User.builder()
                 .name("Carlos Admin")
-                .email("carlos@example.com")
+                .email("carlos.admin@bus.com")
                 .phone("3009876543")
+                .passwordHash("hashed_admin_123")
                 .role(UserRole.DISPATCHER)
                 .status(true)
-                .passwordHash("hash789")
-                .createdAt(baseTime)
+                .createdAt(OffsetDateTime.now())
                 .build();
+        dispatcher1 = userRepository.save(dispatcher1);
 
-        userRepository.save(driver1);
-        userRepository.save(driver2);
-        userRepository.save(dispatcher);
+        // Create route
+        Route route = Route.builder()
+                .code("R001")
+                .name("Bogota-Cali")
+                .origin("Bogota")
+                .destination("Cali")
+                .distanceKm(new BigDecimal("450"))
+                .durationMin(480)
+                .build();
+        route = routeRepository.save(route);
 
-        // Crear bus
-        bus = Bus.builder()
+        // Create bus
+        Bus bus = Bus.builder()
                 .plate("ABC123")
                 .capacity(40)
                 .status(true)
                 .build();
+        bus = busRepository.save(bus);
 
-        busRepository.save(bus);
-
-        // Crear ruta
-        route = Route.builder()
-                .code("R001")
-                .name("Ruta Norte")
-                .origin("Bogotá")
-                .destination("Medellín")
-                .distanceKm(new BigDecimal("400.50"))
-                .durationMin(420)
-                .build();
-
-        routeRepository.save(route);
-
-        // Crear viajes
+        // Create trips - cada uno único
         trip1 = Trip.builder()
                 .route(route)
                 .bus(bus)
                 .date(LocalDate.now().plusDays(1))
-                .departureTime(baseTime.plusDays(1))
-                .arrivalTime(baseTime.plusHours(1).plusHours(7))
+                .departureTime(OffsetDateTime.now().plusDays(1))
+                .arrivalTime(OffsetDateTime.now().plusDays(1).plusHours(8))
                 .status(TripStatus.SCHEDULED)
                 .build();
+        trip1 = tripRepository.save(trip1);
 
         trip2 = Trip.builder()
                 .route(route)
                 .bus(bus)
                 .date(LocalDate.now().plusDays(2))
-                .departureTime(baseTime.plusDays(2))
-                .arrivalTime(baseTime.plusHours(2).plusHours(7))
+                .departureTime(OffsetDateTime.now().plusDays(2))
+                .arrivalTime(OffsetDateTime.now().plusDays(2).plusHours(8))
                 .status(TripStatus.SCHEDULED)
                 .build();
+        trip2 = tripRepository.save(trip2);
 
         trip3 = Trip.builder()
                 .route(route)
                 .bus(bus)
                 .date(LocalDate.now().plusDays(3))
-                .departureTime(baseTime.plusDays(3))
-                .arrivalTime(baseTime.plusDays(3).plusHours(7))
+                .departureTime(OffsetDateTime.now().plusDays(3))
+                .arrivalTime(OffsetDateTime.now().plusDays(3).plusHours(8))
                 .status(TripStatus.SCHEDULED)
                 .build();
+        trip3 = tripRepository.save(trip3);
 
-        tripRepository.save(trip1);
-        tripRepository.save(trip2);
-        tripRepository.save(trip3);
-
-        // Crear asignaciones
+        // Create assignments - un assignment por trip
         assignment1 = Assignment.builder()
                 .trip(trip1)
                 .driver(driver1)
-                .dispatcher(dispatcher)
+                .dispatcher(dispatcher1)
                 .checkListOk(true)
-                .assignedAt(baseTime.minusHours(5))
+                .assignedAt(OffsetDateTime.now())
                 .build();
 
         assignment2 = Assignment.builder()
                 .trip(trip2)
                 .driver(driver1)
-                .dispatcher(dispatcher)
+                .dispatcher(dispatcher1)
                 .checkListOk(false)
-                .assignedAt(baseTime.minusHours(3))
+                .assignedAt(OffsetDateTime.now())
                 .build();
 
         assignment3 = Assignment.builder()
                 .trip(trip3)
                 .driver(driver2)
-                .dispatcher(dispatcher)
+                .dispatcher(dispatcher1)
                 .checkListOk(true)
-                .assignedAt(baseTime.minusHours(2))
+                .assignedAt(OffsetDateTime.now())
                 .build();
     }
+
     @Test
-    @DisplayName("Assignment: find by driver")
-    void shouldFindByDriverID() {
+    @DisplayName("Assignment: find by driver id with pagination")
+    void shouldFindByDriverId() {
         // Given
         assignmentRepository.save(assignment1);
         assignmentRepository.save(assignment2);
-        assignmentRepository.save(assignment3);
 
         // When
-        var driver1Assignments = assignmentRepository.findByDriverId(driver1.getId());
-        var driver2Assignments = assignmentRepository.findByDriverId(driver2.getId());
+        var result = assignmentRepository.findByDriverId(driver1.getId(), PageRequest.of(0, 10));
 
         // Then
-        assertThat(driver1Assignments).hasSize(2);
-        assertThat(driver2Assignments).hasSize(1);
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent())
+                .extracting(Assignment::getDriver)
+                .extracting(User::getName)
+                .containsOnly("Juan Perez");
     }
 
     @Test
-    @DisplayName("Assignment: find by Trip id")
-    void shouldFindByTripID() {
+    @DisplayName("Assignment: find by trip id with pagination")
+    void shouldFindByTripId() {
         // Given
         assignmentRepository.save(assignment1);
         assignmentRepository.save(assignment2);
-        assignmentRepository.save(assignment3);
+
         // When
-        var assignmentForTrip1 = assignmentRepository.findByTripId(trip1.getId());
+        var result = assignmentRepository.findByTripId(trip1.getId(), PageRequest.of(0, 10));
+
         // Then
-        assertThat(assignmentForTrip1).hasSize(1);
-        assertThat(assignmentForTrip1.get(0).getDriver().getName()).isEqualTo("Juan Pérez");
-        assertThat(assignmentForTrip1.get(0).isCheckListOk()).isTrue();
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getTrip().getId()).isEqualTo(trip1.getId());
     }
 
+    @Test
+    @DisplayName("Assignment: find by id")
+    void shouldFindById() {
+        // Given
+        assignment1 = assignmentRepository.save(assignment1);
+
+        // When
+        var result = assignmentRepository.findById(assignment1.getId());
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getDriver().getName()).isEqualTo("Juan Perez");
+        assertThat(result.get().isCheckListOk()).isTrue();
+    }
 
     @Test
     @DisplayName("Assignment: count by driver id")
@@ -212,15 +220,16 @@ class AssignmentRepositoryTest extends AbstractRepositoryIT {
         assignmentRepository.save(assignment3);
 
         // When
-        var driver1Count = assignmentRepository.countByDriverId(driver1.getId());
-        var driver2Count = assignmentRepository.countByDriverId(driver2.getId());
+        var countDriver1 = assignmentRepository.countByDriverId(driver1.getId());
+        var countDriver2 = assignmentRepository.countByDriverId(driver2.getId());
 
         // Then
-        assertThat(driver1Count).isEqualTo(2);
-        assertThat(driver2Count).isEqualTo(1);
+        assertThat(countDriver1).isEqualTo(2L);
+        assertThat(countDriver2).isEqualTo(1L);
     }
+
     @Test
-    @DisplayName("Assignment: count by checklist OK status")
+    @DisplayName("Assignment: count by checklist ok")
     void shouldCountByCheckListOk() {
         // Given
         assignmentRepository.save(assignment1);
@@ -228,27 +237,134 @@ class AssignmentRepositoryTest extends AbstractRepositoryIT {
         assignmentRepository.save(assignment3);
 
         // When
-        var completedCount = assignmentRepository.countByCheckListOk(true);
-        var pendingCount = assignmentRepository.countByCheckListOk(false);
+        var countOk = assignmentRepository.countByCheckListOk(true);
+        var countNotOk = assignmentRepository.countByCheckListOk(false);
 
         // Then
-        assertThat(completedCount).isEqualTo(2);
-        assertThat(pendingCount).isEqualTo(1);
+        assertThat(countOk).isEqualTo(2L);
+        assertThat(countNotOk).isEqualTo(1L);
     }
 
-
     @Test
-    @DisplayName("Assignment: exists by driver id")
-    void shouldExistsByDriverId() {
+    @DisplayName("Assignment: check if exists by driver id")
+    void shouldCheckExistsByDriverId() {
         // Given
         assignmentRepository.save(assignment1);
 
         // When
         var exists = assignmentRepository.existsByDriverId(driver1.getId());
-        var notExists = assignmentRepository.existsByDriverId(driver2.getId());
+        var notExists = assignmentRepository.existsByDriverId(999L);
 
         // Then
         assertThat(exists).isTrue();
         assertThat(notExists).isFalse();
+    }
+
+    @Test
+    @DisplayName("Assignment: check if exists by trip id")
+    void shouldCheckExistsByTripId() {
+        // Given
+        assignmentRepository.save(assignment1);
+
+        // When
+        var exists = assignmentRepository.existsByTripId(trip1.getId());
+        var notExists = assignmentRepository.existsByTripId(999L);
+
+        // Then
+        assertThat(exists).isTrue();
+        assertThat(notExists).isFalse();
+    }
+
+    @Test
+    @DisplayName("Assignment: find first by trip id")
+    void shouldFindFirstByTripId() {
+        // Given
+        assignmentRepository.save(assignment1);
+
+        // When
+        var result = assignmentRepository.findFirstByTripId(trip1.getId());
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getTrip().getId()).isEqualTo(trip1.getId());
+    }
+
+    @Test
+    @DisplayName("Assignment: return empty when driver has no assignments")
+    void shouldReturnEmptyWhenDriverHasNoAssignments() {
+        // Given - no assignments saved for driver2
+
+        // When
+        var result = assignmentRepository.findByDriverId(driver2.getId(), PageRequest.of(0, 10));
+
+        // Then
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Assignment: return empty when trip id not found")
+    void shouldReturnEmptyWhenTripIdNotFound() {
+        // Given
+        assignmentRepository.save(assignment1);
+
+        // When
+        var result = assignmentRepository.findFirstByTripId(999L);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Assignment: return empty when id not found")
+    void shouldReturnEmptyWhenIdNotFound() {
+        // Given
+        assignmentRepository.save(assignment1);
+
+        // When
+        var result = assignmentRepository.findById(999L);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Assignment: verify dispatcher relationship")
+    void shouldVerifyDispatcherRelationship() {
+        // Given
+        assignmentRepository.save(assignment1);
+
+        // When
+        var result = assignmentRepository.findById(assignment1.getId());
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getDispatcher()).isNotNull();
+        assertThat(result.get().getDispatcher().getName()).isEqualTo("Carlos Admin");
+        assertThat(result.get().getDispatcher().getRole()).isEqualTo(UserRole.DISPATCHER);
+    }
+
+    @Test
+    @DisplayName("Assignment: return zero count when driver has no assignments")
+    void shouldReturnZeroCountWhenDriverHasNoAssignments() {
+        // Given - no assignments for driver2
+
+        // When
+        var count = assignmentRepository.countByDriverId(driver2.getId());
+
+        // Then
+        assertThat(count).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("Assignment: return zero count when no checklist with specific status")
+    void shouldReturnZeroCountWhenNoChecklistWithStatus() {
+        // Given
+        assignmentRepository.save(assignment1); // checkListOk = true
+
+        // When
+        var count = assignmentRepository.countByCheckListOk(false);
+
+        // Then
+        assertThat(count).isEqualTo(0L);
     }
 }

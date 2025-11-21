@@ -3,9 +3,12 @@ package co.edu.unimagdalena.finalproject_brasilia2.services.impl;
 import co.edu.unimagdalena.finalproject_brasilia2.api.dto.TicketDtos.*;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.*;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PaymentMethod;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.SeatHoldStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
+import co.edu.unimagdalena.finalproject_brasilia2.services.ConfigService;
+import co.edu.unimagdalena.finalproject_brasilia2.services.FareRuleService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.TicketService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.TicketMapper;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,7 +33,11 @@ public class TicketServiceImpl implements TicketService {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
     private final StopRepository stopRepository;
+    private final SeatRepository seatRepository;
+    private final SeatHoldRepository seatHoldRepository;
     private final TicketMapper mapper;
+    private final ConfigService configService;
+    private final FareRuleService fareRuleService;
 
     @Override
     @Transactional
@@ -45,8 +55,15 @@ public class TicketServiceImpl implements TicketService {
 
         Stop toStop = stopRepository.findById(request.toStopId())
                 .orElseThrow(() -> new NotFoundException("ToStop %d not found".formatted(request.toStopId())));
-        //belong
 
+        //Validate if seats exist in bus
+        seatRepository.findByBusIdAndNumber(trip.getBus().getId(), request.seatNumber())
+                .orElseThrow(() -> new NotFoundException(
+                        "Seat %s does not exist in bus %s"
+                                .formatted(request.seatNumber(), trip.getBus().getPlate())
+                ));
+
+        //belong
         if (!fromStop.getRoute().getId().equals(trip.getRoute().getId())) {
             throw new IllegalStateException("FromStop doesn't belong to trip's route");
         }
@@ -58,9 +75,15 @@ public class TicketServiceImpl implements TicketService {
         if (fromStop.getOrder() >= toStop.getOrder()) {
             throw new IllegalStateException("FromStop order must be less than ToStop order");
         }
-        if (ticketRepository.findByTripAndSeatNumber(trip, request.seatNumber()).isPresent()) {
-            throw new IllegalStateException("Seat %s already sold for this trip".formatted(request.seatNumber()));
+
+        // Validate seat availability in overlapping segments
+        if (ticketRepository.existsOverlappingTicket(trip.getId(), request.seatNumber(), fromStop.getOrder(), toStop.getOrder())) {
+            throw new IllegalStateException("Seat %s is already occupied in overlapping segment between stops %d and %d"
+                    .formatted(request.seatNumber(), fromStop.getOrder(), toStop.getOrder())
+            );
         }
+
+
 
         // Crear ticket
         Ticket ticket = mapper.toEntity(request);
@@ -68,7 +91,21 @@ public class TicketServiceImpl implements TicketService {
         ticket.setPassenger(passenger);
         ticket.setFromStop(fromStop);
         ticket.setToStop(toStop);
+
+        //Por fin Gamero "implemento" (le pidio a la IA) la logica del tipo de pasajero y el precio
+        var price = (fareRuleService.calculateTicketPrice(
+                trip.getId(), fromStop.getId(), toStop.getId(), ticket.getPassengerType()
+        ));
+
+        ticket.setPrice(price);
         ticket.setQrCode(generateQrCode());
+
+        // Mark SeatHold EXPIRED if exists (consume the hold)
+        seatHoldRepository.findByTripIdAndSeatNumberAndStatus(trip.getId(), request.seatNumber(), SeatHoldStatus.HOLD)
+                .ifPresent(hold -> {
+                    hold.setStatus(SeatHoldStatus.EXPIRED);
+                    seatHoldRepository.save(hold);
+                });
 
         return mapper.toResponse(ticketRepository.save(ticket));
     }
@@ -161,6 +198,30 @@ public class TicketServiceImpl implements TicketService {
         if (ticket.getStatus() != TicketStatus.SOLD) {
             throw new IllegalStateException("Only SOLD tickets can be cancelled");
         }
+
+        //add business rules for cancellation
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime departureTime = ticket.getTrip().getDepartureTime();
+        var hourDiff = Duration.between(now, departureTime).toHours();
+        BigDecimal refundPercent;
+        
+        if (hourDiff >= 24) {
+            refundPercent = configService.getValue("REFUND_24H_PERCENT");
+        }
+        else if (hourDiff >= 12) {
+            refundPercent = configService.getValue("REFUND_12H_PERCENT");
+        }
+        else if (hourDiff >= 2) {
+            refundPercent = configService.getValue("REFUND_2H_PERCENT");
+        }
+        else {
+            throw new IllegalStateException("Cancellations must be made at least 2 hours before departure");
+        }
+
+        //Calculate and set refund amount
+        // (BigDecimal es tan peye (o tan bueno) que no permite operaciones directas en redondeo. Tienes que configurarlo con el HALF_UP este: si el tercer decimal es ≥ 5, redondea hacia arriba)
+        BigDecimal refundAmount = ticket.getPrice().multiply(refundPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        ticket.setRefundAmount(refundAmount);
 
         ticket.setStatus(TicketStatus.CANCELLED);
         return mapper.toResponse(ticketRepository.save(ticket));

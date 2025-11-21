@@ -15,6 +15,3 @@ public record APIError(@JsonFormat(shape = JsonFormat.Shape.STRING) OffsetDateTi
 
     public record FieldViolation(String field, String message){}
 }
-
-
-

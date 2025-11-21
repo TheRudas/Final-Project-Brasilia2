@@ -1,5 +1,6 @@
 package co.edu.unimagdalena.finalproject_brasilia2.domain.entities;
 
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PassengerType;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.PaymentMethod;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TicketStatus;
 import jakarta.persistence.*;
@@ -52,6 +53,20 @@ public class Ticket {
     @Enumerated(EnumType.STRING)
     private TicketStatus status;
 
-    @Column(name = "qrCode", nullable = false)
+    @Column(name = "qrCode", nullable = false, unique = true)
     private String qrCode;
+
+    @Column(name = "no_show_fee", scale = 2, precision = 10)
+    private BigDecimal noShowFee;
+
+    @Column(name = "refund_amount", scale = 2, precision = 10)
+    private BigDecimal refundAmount;
+
+    @ManyToOne
+    @JoinColumn(name = "approved_by")
+    private User approvedBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "passenger_type")
+    private PassengerType passengerType;
 }

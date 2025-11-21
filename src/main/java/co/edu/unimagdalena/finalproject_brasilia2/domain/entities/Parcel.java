@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Builder
 @Table(name = "parcels")
-public class Parcel {
+public class    Parcel {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;

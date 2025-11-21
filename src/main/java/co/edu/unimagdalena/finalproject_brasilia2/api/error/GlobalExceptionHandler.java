@@ -1,4 +1,3 @@
-
 package co.edu.unimagdalena.finalproject_brasilia2.api.error;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import jakarta.validation.ConstraintViolationException;

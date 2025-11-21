@@ -94,7 +94,7 @@ public class StopRepositoryTest extends AbstractRepositoryIT {
         stopRepository.save(stop1);
 
         // When
-        var result = stopRepository.findByNameIgnoreCase("terminal Lorica");
+        var result = stopRepository.findByNameIgnoreCase("terminal lorica");
 
         // Then
         assertThat(result).isPresent();
@@ -248,5 +248,75 @@ public class StopRepositoryTest extends AbstractRepositoryIT {
 
         // Then
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Stop: verify coordinates are properly stored")
+    void shouldVerifyCoordinatesAreProperlyStored() {
+        // Given
+        stopRepository.save(stop1);
+
+        // When
+        var result = stopRepository.findByNameIgnoreCase("Terminal Lorica");
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getLat()).isEqualTo(4.6097);
+        assertThat(result.get().getLng()).isEqualTo(-74.0817);
+    }
+
+    @Test
+    @DisplayName("Stop: case insensitive search works correctly")
+    void shouldFindWithDifferentCases() {
+        // Given
+        stopRepository.save(stop1);
+
+        // When
+        var lowercase = stopRepository.findByNameIgnoreCase("terminal lorica");
+        var uppercase = stopRepository.findByNameIgnoreCase("TERMINAL LORICA");
+        var mixedcase = stopRepository.findByNameIgnoreCase("TeRmInAl LoRiCa");
+
+        // Then
+        assertThat(lowercase).isPresent();
+        assertThat(uppercase).isPresent();
+        assertThat(mixedcase).isPresent();
+        assertThat(lowercase.get().getId()).isEqualTo(uppercase.get().getId());
+        assertThat(lowercase.get().getId()).isEqualTo(mixedcase.get().getId());
+    }
+
+    @Test
+    @DisplayName("Stop: verify ordering is maintained")
+    void shouldVerifyOrderingIsMaintained() {
+        // Given - save in random order
+        stopRepository.save(stop2);
+        stopRepository.save(stop3);
+        stopRepository.save(stop1);
+
+        // When
+        var result = stopRepository.findByRouteIdOrderByOrderAsc(route1.getId());
+
+        // Then
+        assertThat(result).hasSize(3);
+        assertThat(result.get(0).getOrder()).isEqualTo(1);
+        assertThat(result.get(1).getOrder()).isEqualTo(2);
+        assertThat(result.get(2).getOrder()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("Stop: different routes can have stops with same order")
+    void shouldAllowSameOrderInDifferentRoutes() {
+        // Given
+        stopRepository.save(stop1); // order 1 in route1
+        stopRepository.save(stop4); // order 1 in route2
+
+        // When
+        var route1Stop1 = stopRepository.findByRouteIdAndOrder(route1.getId(), 1);
+        var route2Stop1 = stopRepository.findByRouteIdAndOrder(route2.getId(), 1);
+
+        // Then
+        assertThat(route1Stop1).isPresent();
+        assertThat(route2Stop1).isPresent();
+        assertThat(route1Stop1.get().getName()).isEqualTo("Terminal Lorica");
+        assertThat(route2Stop1.get().getName()).isEqualTo("Terminal Quilla");
     }
 }

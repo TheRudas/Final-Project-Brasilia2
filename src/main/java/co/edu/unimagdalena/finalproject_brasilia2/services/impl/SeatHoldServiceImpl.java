@@ -5,10 +5,7 @@ import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.SeatHold;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Trip;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.User;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.SeatHoldStatus;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.SeatHoldRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TicketRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.TripRepository;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.UserRepository;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.repositories.*;
 import co.edu.unimagdalena.finalproject_brasilia2.exceptions.NotFoundException;
 import co.edu.unimagdalena.finalproject_brasilia2.services.SeatHoldService;
 import co.edu.unimagdalena.finalproject_brasilia2.services.mappers.SeatHoldMapper;
@@ -28,6 +25,7 @@ public class SeatHoldServiceImpl implements SeatHoldService {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final SeatRepository seatRepository;
     private final SeatHoldMapper mapper;
 
 
@@ -39,6 +37,10 @@ public class SeatHoldServiceImpl implements SeatHoldService {
                 .orElseThrow(() -> new NotFoundException("Trip %d not found".formatted(request.tripId())));
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new NotFoundException("User %d not found".formatted(request.userId())));
+
+        if(seatRepository.findByBusIdAndNumber(trip.getBus().getId(), request.seatNumber()).isEmpty()) {
+            throw new NotFoundException("Seat %s not found in bus %s".formatted(request.seatNumber(), trip.getBus().getPlate()));
+        }
 
         // checkear si el asiento no ha sido vendido (si ya existe un ticket para ese asiento, error)
         if (ticketRepository.findByTripAndSeatNumber(trip, request.seatNumber()).isPresent()) {
@@ -110,10 +112,9 @@ public class SeatHoldServiceImpl implements SeatHoldService {
     @Override
     @Transactional
     public void expireAll() {
-        List<SeatHold> expiredHolds = seatHoldRepository.findAll().stream()
-                .filter(hold -> hold.getStatus() == SeatHoldStatus.HOLD)
-                .filter(hold -> hold.getExpiresAt().isBefore(OffsetDateTime.now()))
-                .toList();
+        // Usar query optimizada del repositorio en lugar de findAll()
+        OffsetDateTime now = OffsetDateTime.now();
+        List<SeatHold> expiredHolds = seatHoldRepository.findByStatusAndExpiresAtBefore(SeatHoldStatus.HOLD, now);
 
         if (!expiredHolds.isEmpty()) {
             expiredHolds.forEach(hold -> hold.setStatus(SeatHoldStatus.EXPIRED));
