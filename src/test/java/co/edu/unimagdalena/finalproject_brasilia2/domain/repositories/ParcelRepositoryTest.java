@@ -1,21 +1,20 @@
 package co.edu.unimagdalena.finalproject_brasilia2.domain.repositories;
 
-import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.*;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Parcel;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Route;
+import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.Stop;
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.ParcelStatus;
-import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.enums.TripStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
-class ParcelRepositoryTest extends AbstractRepositoryIT {
+public class ParcelRepositoryTest extends AbstractRepositoryIT {
+
     @Autowired
     private ParcelRepository parcelRepository;
 
@@ -25,157 +24,111 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
     @Autowired
     private RouteRepository routeRepository;
 
-    @Autowired
-    private BusRepository busRepository;
-
-    @Autowired
-    private TripRepository tripRepository;
-
-    private Stop stopBarranquilla;
-    private Stop stopCienaga;
-    private Stop stopSantaMarta;
     private Route route;
-    private Bus bus;
-    private Trip trip;
+    private Stop stop1;
+    private Stop stop2;
+    private Stop stop3;
     private Parcel parcel1;
     private Parcel parcel2;
     private Parcel parcel3;
     private Parcel parcel4;
-    private Parcel parcel5;
-    private OffsetDateTime baseTime;
+
     @BeforeEach
     void setUp() {
         parcelRepository.deleteAll();
-        tripRepository.deleteAll();
         stopRepository.deleteAll();
         routeRepository.deleteAll();
-        busRepository.deleteAll();
 
-        baseTime = OffsetDateTime.now();
-
-        // Crear bus
-        bus = Bus.builder()
-                .plate("BUS123")
-                .capacity(40)
-                .status(true)
-                .build();
-        busRepository.save(bus);
-
-        // Crear ruta
+        // Create route
         route = Route.builder()
-                .code("RUT001")
-                .name("Ruta Costa Caribe")
+                .code("R001")
+                .name("Barranquilla-Santa Marta")
                 .origin("Barranquilla")
                 .destination("Santa Marta")
-                .distanceKm(new BigDecimal("95.50"))
-                .durationMin(90)
+                .distanceKm(new BigDecimal("100"))
+                .durationMin(120)
                 .build();
-        routeRepository.save(route);
+        route = routeRepository.save(route);
 
-        // Crear paradas
-        stopBarranquilla = Stop.builder()
+        // Create stops
+        stop1 = Stop.builder()
                 .route(route)
                 .name("Terminal Barranquilla")
                 .order(1)
                 .lat(10.9685)
                 .lng(-74.7813)
                 .build();
+        stop1 = stopRepository.save(stop1);
 
-        stopCienaga = Stop.builder()
+        stop2 = Stop.builder()
                 .route(route)
-                .name("Terminal Ciénaga")
+                .name("Terminal Cienaga")
                 .order(2)
-                .lat(11.0054)
-                .lng(-74.2470)
+                .lat(11.0061)
+                .lng(-74.2466)
                 .build();
+        stop2 = stopRepository.save(stop2);
 
-        stopSantaMarta = Stop.builder()
+        stop3 = Stop.builder()
                 .route(route)
                 .name("Terminal Santa Marta")
                 .order(3)
                 .lat(11.2408)
-                .lng(-74.2050)
+                .lng(-74.2099)
                 .build();
+        stop3 = stopRepository.save(stop3);
 
-        stopRepository.save(stopBarranquilla);
-        stopRepository.save(stopCienaga);
-        stopRepository.save(stopSantaMarta);
-
-        // Crear viaje (si tu entidad Parcel necesita trip)
-        trip = Trip.builder()
-                .route(route)
-                .bus(bus)
-                .date(LocalDate.now().plusDays(1))
-                .departureTime(baseTime.plusDays(1))
-                .arrivalTime(baseTime.plusDays(1).plusHours(2))
-                .status(TripStatus.SCHEDULED)
-                .build();
-        tripRepository.save(trip);
-
-        // Crear paquetes
+        // Create parcels
         parcel1 = Parcel.builder()
-                .code("PKG001")
-                .senderName("Juan Pérez")
+                .code("PCL001")
+                .senderName("Juan Rodriguez")
                 .senderPhone("3001234567")
-                .receiverName("María García")
-                .receiverPhone("3007654321")
-                .fromStop(stopBarranquilla)
-                .toStop(stopSantaMarta)
-                .price(new BigDecimal("25000"))
-                .status(ParcelStatus.IN_TRANSIT)
+                .receiverName("Maria Gomez")
+                .receiverPhone("3109876543")
+                .fromStop(stop1)
+                .toStop(stop2)
+                .price(new BigDecimal("15000"))
+                .status(ParcelStatus.CREATED)
                 .deliveryOtp("12345678")
                 .build();
 
         parcel2 = Parcel.builder()
-                .code("PKG002")
-                .senderName("Juan Pérez")
+                .code("PCL002")
+                .senderName("Juan Rodriguez")
                 .senderPhone("3001234567")
-                .receiverName("Carlos López")
-                .receiverPhone("3009876543")
-                .fromStop(stopBarranquilla)
-                .toStop(stopCienaga)
-                .price(new BigDecimal("15000"))
+                .receiverName("Carlos Perez")
+                .receiverPhone("3201122334")
+                .fromStop(stop1)
+                .toStop(stop3)
+                .price(new BigDecimal("20000"))
                 .status(ParcelStatus.IN_TRANSIT)
                 .deliveryOtp("87654321")
                 .build();
 
         parcel3 = Parcel.builder()
-                .code("PKG003")
-                .senderName("Ana Martínez")
-                .senderPhone("3005556666")
-                .receiverName("Pedro González")
-                .receiverPhone("3002223333")
-                .fromStop(stopCienaga)
-                .toStop(stopSantaMarta)
-                .price(new BigDecimal("10000"))
+                .code("PCL003")
+                .senderName("Ana Lopez")
+                .senderPhone("3154445566")
+                .receiverName("Pedro Santos")
+                .receiverPhone("3007778899")
+                .fromStop(stop2)
+                .toStop(stop3)
+                .price(new BigDecimal("12000"))
                 .status(ParcelStatus.DELIVERED)
-                .deliveryOtp("11112222")
+                .deliveryOtp("11223344")
                 .build();
 
         parcel4 = Parcel.builder()
-                .code("PKG004")
-                .senderName("María García")
-                .senderPhone("3007654321")
-                .receiverName("Juan Pérez")
-                .receiverPhone("3001234567")
-                .fromStop(stopBarranquilla)
-                .toStop(stopSantaMarta)
-                .price(new BigDecimal("30000"))
+                .code("PCL004")
+                .senderName("Luis Martinez")
+                .senderPhone("3189990000")
+                .receiverName("Sofia Ramirez")
+                .receiverPhone("3156667777")
+                .fromStop(stop1)
+                .toStop(stop2)
+                .price(new BigDecimal("18000"))
                 .status(ParcelStatus.FAILED)
-                .deliveryOtp("99998888")
-                .build();
-
-        parcel5 = Parcel.builder()
-                .code("PKG005")
-                .senderName("Carlos López")
-                .senderPhone("3009876543")
-                .receiverName("María García")
-                .receiverPhone("3007654321")
-                .fromStop(stopSantaMarta)
-                .toStop(stopBarranquilla)
-                .price(new BigDecimal("20000"))
-                .status(ParcelStatus.FAILED)
-                .deliveryOtp("55554444")
+                .deliveryOtp("99887766")
                 .build();
     }
 
@@ -188,18 +141,15 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
         parcelRepository.save(parcel3);
 
         // When
-        var juanParcels = parcelRepository.findBySenderName("Juan Pérez");
-        var anaParcels = parcelRepository.findBySenderName("Ana Martínez");
+        var result = parcelRepository.findBySenderName("Juan Rodriguez");
 
         // Then
-        assertThat(juanParcels).hasSize(2);
-        assertThat(juanParcels)
+        assertThat(result).hasSize(2);
+        assertThat(result)
                 .extracting(Parcel::getCode)
-                .containsExactlyInAnyOrder("PKG001", "PKG002");
-
-        assertThat(anaParcels).hasSize(1);
-        assertThat(anaParcels.get(0).getCode()).isEqualTo("PKG003");
+                .containsExactlyInAnyOrder("PCL001", "PCL002");
     }
+
     @Test
     @DisplayName("Parcel: find by sender phone")
     void shouldFindBySenderPhone() {
@@ -214,11 +164,8 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
         // Then
         assertThat(result).hasSize(2);
         assertThat(result)
-                .extracting(Parcel::getSenderName)
-                .allMatch(name -> name.equals("Juan Pérez"));
-        assertThat(result)
                 .extracting(Parcel::getReceiverName)
-                .containsExactlyInAnyOrder("María García", "Carlos López");
+                .containsExactlyInAnyOrder("Maria Gomez", "Carlos Perez");
     }
 
     @Test
@@ -226,21 +173,16 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
     void shouldFindByReceiverName() {
         // Given
         parcelRepository.save(parcel1);
-        parcelRepository.save(parcel4);
-        parcelRepository.save(parcel5);
+        parcelRepository.save(parcel2);
+        parcelRepository.save(parcel3);
 
         // When
-        var mariaReceives = parcelRepository.findByReceiverName("María García");
-        var juanReceives = parcelRepository.findByReceiverName("Juan Pérez");
+        var result = parcelRepository.findByReceiverName("Maria Gomez");
 
         // Then
-        assertThat(mariaReceives).hasSize(2);
-        assertThat(mariaReceives)
-                .extracting(Parcel::getCode)
-                .containsExactlyInAnyOrder("PKG001", "PKG005");
-
-        assertThat(juanReceives).hasSize(1);
-        assertThat(juanReceives.get(0).getCode()).isEqualTo("PKG004");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getCode()).isEqualTo("PCL001");
+        assertThat(result.get(0).getSenderName()).isEqualTo("Juan Rodriguez");
     }
 
     @Test
@@ -248,20 +190,16 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
     void shouldFindByReceiverPhone() {
         // Given
         parcelRepository.save(parcel1);
-        parcelRepository.save(parcel4);
-        parcelRepository.save(parcel5);
+        parcelRepository.save(parcel2);
+        parcelRepository.save(parcel3);
 
         // When
-        var result = parcelRepository.findByReceiverPhone("3007654321");
+        var result = parcelRepository.findByReceiverPhone("3007778899");
 
         // Then
-        assertThat(result).hasSize(2);
-        assertThat(result)
-                .extracting(Parcel::getCode)
-                .containsExactlyInAnyOrder("PKG001", "PKG005");
-        assertThat(result)
-                .extracting(Parcel::getReceiverName)
-                .allMatch(name -> name.equals("María García"));
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getCode()).isEqualTo("PCL003");
+        assertThat(result.get(0).getReceiverName()).isEqualTo("Pedro Santos");
     }
 
     @Test
@@ -272,30 +210,17 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
         parcelRepository.save(parcel2);
         parcelRepository.save(parcel3);
         parcelRepository.save(parcel4);
-        parcelRepository.save(parcel5);
 
         // When
-        var pendingParcels = parcelRepository.findByStatus(ParcelStatus.IN_TRANSIT);
         var inTransitParcels = parcelRepository.findByStatus(ParcelStatus.IN_TRANSIT);
         var deliveredParcels = parcelRepository.findByStatus(ParcelStatus.DELIVERED);
-        var cancelledParcels = parcelRepository.findByStatus(ParcelStatus.FAILED);
-        var failedParcels = parcelRepository.findByStatus(ParcelStatus.FAILED);
 
         // Then
-        assertThat(pendingParcels).hasSize(2);
-        assertThat(pendingParcels.get(0).getCode()).isEqualTo("PKG001");
-
-        assertThat(inTransitParcels).hasSize(2);
-        assertThat(inTransitParcels.get(0).getCode()).isEqualTo("PKG001");
+        assertThat(inTransitParcels).hasSize(1);
+        assertThat(inTransitParcels.get(0).getCode()).isEqualTo("PCL002");
 
         assertThat(deliveredParcels).hasSize(1);
-        assertThat(deliveredParcels.get(0).getCode()).isEqualTo("PKG003");
-
-        assertThat(cancelledParcels).hasSize(2);
-        assertThat(cancelledParcels.get(0).getCode()).isEqualTo("PKG004");
-
-        assertThat(failedParcels).hasSize(2);
-        assertThat(failedParcels.get(0).getCode()).isEqualTo("PKG004");
+        assertThat(deliveredParcels.get(0).getCode()).isEqualTo("PCL003");
     }
 
     @Test
@@ -305,25 +230,15 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
         parcelRepository.save(parcel1);
         parcelRepository.save(parcel2);
         parcelRepository.save(parcel3);
-        parcelRepository.save(parcel4);
-        parcelRepository.save(parcel5);
 
         // When
-        var fromBarranquilla = parcelRepository.findByFromStopId(stopBarranquilla.getId());
-        var fromCienaga = parcelRepository.findByFromStopId(stopCienaga.getId());
-        var fromSantaMarta = parcelRepository.findByFromStopId(stopSantaMarta.getId());
+        var result = parcelRepository.findByFromStopId(stop1.getId());
 
         // Then
-        assertThat(fromBarranquilla).hasSize(3);
-        assertThat(fromBarranquilla)
+        assertThat(result).hasSize(2);
+        assertThat(result)
                 .extracting(Parcel::getCode)
-                .containsExactlyInAnyOrder("PKG001", "PKG002", "PKG004");
-
-        assertThat(fromCienaga).hasSize(1);
-        assertThat(fromCienaga.get(0).getCode()).isEqualTo("PKG003");
-
-        assertThat(fromSantaMarta).hasSize(1);
-        assertThat(fromSantaMarta.get(0).getCode()).isEqualTo("PKG005");
+                .containsExactlyInAnyOrder("PCL001", "PCL002");
     }
 
     @Test
@@ -333,63 +248,138 @@ class ParcelRepositoryTest extends AbstractRepositoryIT {
         parcelRepository.save(parcel1);
         parcelRepository.save(parcel2);
         parcelRepository.save(parcel3);
-        parcelRepository.save(parcel4);
-        parcelRepository.save(parcel5);
 
         // When
-        var toBarranquilla = parcelRepository.findByToStopId(stopBarranquilla.getId());
-        var toCienaga = parcelRepository.findByToStopId(stopCienaga.getId());
-        var toSantaMarta = parcelRepository.findByToStopId(stopSantaMarta.getId());
+        var result = parcelRepository.findByToStopId(stop3.getId());
 
         // Then
-        assertThat(toBarranquilla).hasSize(1);
-        assertThat(toBarranquilla.get(0).getCode()).isEqualTo("PKG005");
-
-        assertThat(toCienaga).hasSize(1);
-        assertThat(toCienaga.get(0).getCode()).isEqualTo("PKG002");
-
-        assertThat(toSantaMarta).hasSize(3);
-        assertThat(toSantaMarta)
+        assertThat(result).hasSize(2);
+        assertThat(result)
                 .extracting(Parcel::getCode)
-                .containsExactlyInAnyOrder("PKG001", "PKG003", "PKG004");
+                .containsExactlyInAnyOrder("PCL002", "PCL003");
     }
 
     @Test
-    @DisplayName("Parcel: find by sender name case sensitive")
-    void shouldFindBySenderNameCaseSensitive() {
+    @DisplayName("Parcel: find by code")
+    void shouldFindByCode() {
         // Given
         parcelRepository.save(parcel1);
+        parcelRepository.save(parcel2);
 
         // When
-        var exactMatch = parcelRepository.findBySenderName("Juan Pérez");
-        var wrongCase = parcelRepository.findBySenderName("juan pérez");
+        var result = parcelRepository.findByCode("PCL001");
 
         // Then
-        assertThat(exactMatch).hasSize(1);
-        assertThat(wrongCase).isEmpty(); // Spring Data es case-sensitive por defecto
+        assertThat(result).isPresent();
+        assertThat(result.get().getSenderName()).isEqualTo("Juan Rodriguez");
+        assertThat(result.get().getReceiverName()).isEqualTo("Maria Gomez");
+        assertThat(result.get().getDeliveryOtp()).isEqualTo("12345678");
     }
+
     @Test
-    @DisplayName("Parcel: return empty list when sender not found")
-    void shouldReturnEmptyWhenSenderNotFound() {
+    @DisplayName("Parcel: find by to stop id and status")
+    void shouldFindByToStopIdAndStatus() {
+        // Given
+        parcelRepository.save(parcel1);
+        parcelRepository.save(parcel2);
+        parcelRepository.save(parcel3);
+
+        // When
+        var result = parcelRepository.findByToStopIdAndStatus(
+                stop3.getId(),
+                ParcelStatus.DELIVERED
+        );
+
+        // Then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getCode()).isEqualTo("PCL003");
+    }
+
+    @Test
+    @DisplayName("Parcel: count by status")
+    void shouldCountByStatus() {
+        // Given
+        parcelRepository.save(parcel1);
+        parcelRepository.save(parcel2);
+        parcelRepository.save(parcel3);
+        parcelRepository.save(parcel4);
+
+        // When
+        var createdCount = parcelRepository.countByStatus(ParcelStatus.CREATED);
+        var inTransitCount = parcelRepository.countByStatus(ParcelStatus.IN_TRANSIT);
+        var deliveredCount = parcelRepository.countByStatus(ParcelStatus.DELIVERED);
+        var failedCount = parcelRepository.countByStatus(ParcelStatus.FAILED);
+
+        // Then
+        assertThat(createdCount).isEqualTo(1L);
+        assertThat(inTransitCount).isEqualTo(1L);
+        assertThat(deliveredCount).isEqualTo(1L);
+        assertThat(failedCount).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("Parcel: check if exists by code")
+    void shouldCheckExistsByCode() {
         // Given
         parcelRepository.save(parcel1);
 
         // When
-        var result = parcelRepository.findBySenderName("Usuario Inexistente");
+        var exists = parcelRepository.existsByCode("PCL001");
+        var notExists = parcelRepository.existsByCode("PCL999");
+
+        // Then
+        assertThat(exists).isTrue();
+        assertThat(notExists).isFalse();
+    }
+
+    @Test
+    @DisplayName("Parcel: return empty when code not found")
+    void shouldReturnEmptyWhenCodeNotFound() {
+        // Given
+        parcelRepository.save(parcel1);
+
+        // When
+        var result = parcelRepository.findByCode("PCL999");
 
         // Then
         assertThat(result).isEmpty();
     }
+
     @Test
-    @DisplayName("Parcel: return empty list when receiver not found")
-    void shouldReturnEmptyWhenReceiverNotFound() {
+    @DisplayName("Parcel: return empty list when sender has no parcels")
+    void shouldReturnEmptyWhenSenderHasNoParcels() {
         // Given
         parcelRepository.save(parcel1);
 
         // When
-        var result = parcelRepository.findByReceiverPhone("9999999999");
+        var result = parcelRepository.findBySenderName("Unknown Sender");
 
         // Then
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Parcel: return empty list when status has no parcels")
+    void shouldReturnEmptyWhenStatusHasNoParcels() {
+        // Given
+        parcelRepository.save(parcel1);
+
+        // When
+        var result = parcelRepository.findByStatus(ParcelStatus.DELIVERED);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Parcel: return zero count when status has no parcels")
+    void shouldReturnZeroCountWhenStatusHasNoParcels() {
+        // Given - no parcels saved
+
+        // When
+        var count = parcelRepository.countByStatus(ParcelStatus.CREATED);
+
+        // Then
+        assertThat(count).isEqualTo(0L);
     }
 }
