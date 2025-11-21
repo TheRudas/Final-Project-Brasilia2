@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,20 +19,14 @@ public class ParcelController {
 
     private final ParcelService parcelService;
 
-    /**
-     * Create (register) a new parcel
-     * POST /api/parcels
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @PostMapping
     public ResponseEntity<ParcelResponse> create(@Valid @RequestBody ParcelCreateRequest request) {
         ParcelResponse response = parcelService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update parcel
-     * PUT /api/parcels/{id}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ParcelResponse> update(
             @PathVariable Long id,
@@ -40,110 +35,77 @@ public class ParcelController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get parcel by ID
-     * GET /api/parcels/{id}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<ParcelResponse> get(@PathVariable Long id) {
         ParcelResponse response = parcelService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete parcel
-     * DELETE /api/parcels/{id}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         parcelService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Get parcel by code
-     * GET /api/parcels/code/{code}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @GetMapping("/code/{code}")
     public ResponseEntity<ParcelResponse> getByCode(@PathVariable String code) {
         ParcelResponse response = parcelService.getByCode(code);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get parcels by sender name
-     * GET /api/parcels/sender/name/{name}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @GetMapping("/sender/name/{name}")
     public ResponseEntity<List<ParcelResponse>> getBySenderName(@PathVariable String name) {
         List<ParcelResponse> parcels = parcelService.getBySenderName(name);
         return ResponseEntity.ok(parcels);
     }
 
-    /**
-     * Get parcels by sender phone
-     * GET /api/parcels/sender/phone/{phone}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @GetMapping("/sender/phone/{phone}")
     public ResponseEntity<List<ParcelResponse>> getBySenderPhone(@PathVariable String phone) {
         List<ParcelResponse> parcels = parcelService.getBySenderPhone(phone);
         return ResponseEntity.ok(parcels);
     }
 
-    /**
-     * Get parcels by receiver name
-     * GET /api/parcels/receiver/name/{name}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @GetMapping("/receiver/name/{name}")
     public ResponseEntity<List<ParcelResponse>> getByReceiverName(@PathVariable String name) {
         List<ParcelResponse> parcels = parcelService.getByReceiverName(name);
         return ResponseEntity.ok(parcels);
     }
 
-    /**
-     * Get parcels by receiver phone
-     * GET /api/parcels/receiver/phone/{phone}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @GetMapping("/receiver/phone/{phone}")
     public ResponseEntity<List<ParcelResponse>> getByReceiverPhone(@PathVariable String phone) {
         List<ParcelResponse> parcels = parcelService.getByReceiverPhone(phone);
         return ResponseEntity.ok(parcels);
     }
 
-    /**
-     * Get parcels by origin stop
-     * GET /api/parcels/from-stop/{stopId}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @GetMapping("/from-stop/{stopId}")
     public ResponseEntity<List<ParcelResponse>> getByFromStop(@PathVariable Long stopId) {
         List<ParcelResponse> parcels = parcelService.getByFromStopId(stopId);
         return ResponseEntity.ok(parcels);
     }
 
-    /**
-     * Get parcels by destination stop
-     * GET /api/parcels/to-stop/{stopId}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @GetMapping("/to-stop/{stopId}")
     public ResponseEntity<List<ParcelResponse>> getByToStop(@PathVariable Long stopId) {
         List<ParcelResponse> parcels = parcelService.getByToStopId(stopId);
         return ResponseEntity.ok(parcels);
     }
 
-    /**
-     * Get parcels by status
-     * GET /api/parcels/status/{status}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @GetMapping("/status/{status}")
     public ResponseEntity<List<ParcelResponse>> getByStatus(@PathVariable ParcelStatus status) {
         List<ParcelResponse> parcels = parcelService.getByStatus(status);
         return ResponseEntity.ok(parcels);
     }
 
-    /**
-     * Deliver parcel with OTP validation
-     * POST /api/parcels/{id}/deliver
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @PostMapping("/{id}/deliver")
     public ResponseEntity<ParcelResponse> deliver(
             @PathVariable Long id,
@@ -152,10 +114,7 @@ public class ParcelController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Assign parcel to trip
-     * POST /api/parcels/{id}/assign-trip
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DISPATCHER', 'ADMIN')")
     @PostMapping("/{id}/assign-trip")
     public ResponseEntity<ParcelResponse> assignToTrip(
             @PathVariable Long id,
@@ -164,10 +123,7 @@ public class ParcelController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Update parcel status
-     * POST /api/parcels/{id}/status
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @PostMapping("/{id}/status")
     public ResponseEntity<ParcelResponse> updateStatus(
             @PathVariable Long id,
@@ -176,10 +132,7 @@ public class ParcelController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * List parcels for delivery at stop
-     * GET /api/parcels/delivery/stop/{stopId}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @GetMapping("/delivery/stop/{stopId}")
     public ResponseEntity<List<ParcelResponse>> listForDelivery(@PathVariable Long stopId) {
         List<ParcelResponse> parcels = parcelService.listParcelsForDelivery(stopId);

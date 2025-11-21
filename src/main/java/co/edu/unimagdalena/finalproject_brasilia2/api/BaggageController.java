@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -20,20 +21,14 @@ public class BaggageController {
 
     private final BaggageService baggageService;
 
-    /**
-     * Create (register) new baggage
-     * POST /api/baggage
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @PostMapping
     public ResponseEntity<BaggageResponse> create(@Valid @RequestBody BaggageCreateRequest request) {
         BaggageResponse response = baggageService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update baggage
-     * PUT /api/baggage/{id}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<BaggageResponse> update(
             @PathVariable Long id,
@@ -42,60 +37,42 @@ public class BaggageController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get baggage by ID
-     * GET /api/baggage/{id}
-     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public ResponseEntity<BaggageResponse> get(@PathVariable Long id) {
         BaggageResponse response = baggageService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete baggage
-     * DELETE /api/baggage/{id}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         baggageService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Get baggage by tag code
-     * GET /api/baggage/tag/{tagCode}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DRIVER', 'ADMIN')")
     @GetMapping("/tag/{tagCode}")
     public ResponseEntity<BaggageResponse> getByTag(@PathVariable String tagCode) {
         BaggageResponse response = baggageService.getByTagCode(tagCode);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get baggage by passenger
-     * GET /api/baggage/passenger/{passengerId}
-     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/passenger/{passengerId}")
     public ResponseEntity<List<BaggageResponse>> getByPassenger(@PathVariable Long passengerId) {
         List<BaggageResponse> baggage = baggageService.listByPassengerId(passengerId);
         return ResponseEntity.ok(baggage);
     }
 
-    /**
-     * Get baggage by ticket
-     * GET /api/baggage/ticket/{ticketId}
-     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/ticket/{ticketId}")
     public ResponseEntity<List<BaggageResponse>> getByTicket(@PathVariable Long ticketId) {
         List<BaggageResponse> baggage = baggageService.listByTicketId(ticketId);
         return ResponseEntity.ok(baggage);
     }
 
-    /**
-     * Get baggage by weight (greater than or equal)
-     * GET /api/baggage/weight/gte?kg=20
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DISPATCHER', 'ADMIN')")
     @GetMapping("/weight/gte")
     public ResponseEntity<Page<BaggageResponse>> getByWeightGte(
             @RequestParam BigDecimal kg,
@@ -104,10 +81,7 @@ public class BaggageController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get baggage by weight (less than or equal)
-     * GET /api/baggage/weight/lte?kg=15
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DISPATCHER', 'ADMIN')")
     @GetMapping("/weight/lte")
     public ResponseEntity<Page<BaggageResponse>> getByWeightLte(
             @RequestParam BigDecimal kg,
@@ -116,10 +90,7 @@ public class BaggageController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get baggage by weight range
-     * GET /api/baggage/weight/between?min=10&max=25
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DISPATCHER', 'ADMIN')")
     @GetMapping("/weight/between")
     public ResponseEntity<Page<BaggageResponse>> getByWeightBetween(
             @RequestParam BigDecimal min,
@@ -129,20 +100,14 @@ public class BaggageController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Count baggage by trip
-     * GET /api/baggage/trip/{tripId}/count
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'CLERK', 'ADMIN')")
     @GetMapping("/trip/{tripId}/count")
     public ResponseEntity<Long> countByTrip(@PathVariable Long tripId) {
         Long count = baggageService.countByTripId(tripId);
         return ResponseEntity.ok(count);
     }
 
-    /**
-     * Sum weight by trip
-     * GET /api/baggage/trip/{tripId}/weight
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'CLERK', 'ADMIN')")
     @GetMapping("/trip/{tripId}/weight")
     public ResponseEntity<BigDecimal> sumWeightByTrip(@PathVariable Long tripId) {
         BigDecimal total = baggageService.sumWeightByTripId(tripId);

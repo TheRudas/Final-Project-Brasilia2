@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -21,20 +22,14 @@ public class IncidentController {
 
     private final IncidentService incidentService;
 
-    /**
-     * Create incident
-     * POST /api/incidents
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'CLERK', 'ADMIN')")
     @PostMapping
     public ResponseEntity<IncidentResponse> create(@Valid @RequestBody IncidentCreateRequest request) {
         IncidentResponse response = incidentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update incident
-     * PUT /api/incidents/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<IncidentResponse> update(
             @PathVariable Long id,
@@ -43,50 +38,35 @@ public class IncidentController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get incident by ID
-     * GET /api/incidents/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'CLERK', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<IncidentResponse> get(@PathVariable Long id) {
         IncidentResponse response = incidentService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete incident
-     * DELETE /api/incidents/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         incidentService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * List incidents by entity type
-     * GET /api/incidents/entity-type/{type}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/entity-type/{type}")
     public ResponseEntity<List<IncidentResponse>> listByEntityType(@PathVariable IncidentEntityType type) {
         List<IncidentResponse> incidents = incidentService.listByEntityType(type);
         return ResponseEntity.ok(incidents);
     }
 
-    /**
-     * List incidents by entity ID
-     * GET /api/incidents/entity/{entityId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/entity/{entityId}")
     public ResponseEntity<List<IncidentResponse>> listByEntity(@PathVariable Long entityId) {
         List<IncidentResponse> incidents = incidentService.listByEntityId(entityId);
         return ResponseEntity.ok(incidents);
     }
 
-    /**
-     * List incidents by entity type and ID
-     * GET /api/incidents/entity-type/{type}/entity/{entityId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/entity-type/{type}/entity/{entityId}")
     public ResponseEntity<List<IncidentResponse>> listByEntityTypeAndId(
             @PathVariable IncidentEntityType type,
@@ -95,30 +75,21 @@ public class IncidentController {
         return ResponseEntity.ok(incidents);
     }
 
-    /**
-     * List incidents by type
-     * GET /api/incidents/type/{type}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/type/{type}")
     public ResponseEntity<List<IncidentResponse>> listByType(@PathVariable IncidentType type) {
         List<IncidentResponse> incidents = incidentService.listByType(type);
         return ResponseEntity.ok(incidents);
     }
 
-    /**
-     * Count incidents by entity type
-     * GET /api/incidents/entity-type/{type}/count
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/entity-type/{type}/count")
     public ResponseEntity<Long> countByEntityType(@PathVariable IncidentEntityType type) {
         Long count = incidentService.countByEntityType(type);
         return ResponseEntity.ok(count);
     }
 
-    /**
-     * List incidents by date range
-     * GET /api/incidents/date-range?start=2025-01-01T00:00:00Z&end=2025-01-31T23:59:59Z
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/date-range")
     public ResponseEntity<List<IncidentResponse>> listByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime start,

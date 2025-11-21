@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,20 +19,14 @@ public class SeatController {
 
     private final SeatService seatService;
 
-    /**
-     * Create a new seat
-     * POST /api/seats
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<SeatResponse> create(@Valid @RequestBody SeatCreateRequest request) {
         SeatResponse response = seatService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update seat
-     * PUT /api/seats/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<SeatResponse> update(
             @PathVariable Long id,
@@ -40,40 +35,28 @@ public class SeatController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get seat by ID
-     * GET /api/seats/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<SeatResponse> get(@PathVariable Long id) {
         SeatResponse response = seatService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete seat
-     * DELETE /api/seats/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         seatService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * List seats by bus
-     * GET /api/seats/bus/{busId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/bus/{busId}")
     public ResponseEntity<List<SeatResponse>> listByBus(@PathVariable Long busId) {
         List<SeatResponse> seats = seatService.listByBusId(busId);
         return ResponseEntity.ok(seats);
     }
 
-    /**
-     * List seats by bus and type
-     * GET /api/seats/bus/{busId}/type/{type}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/bus/{busId}/type/{type}")
     public ResponseEntity<List<SeatResponse>> listByBusAndType(
             @PathVariable Long busId,
@@ -82,10 +65,7 @@ public class SeatController {
         return ResponseEntity.ok(seats);
     }
 
-    /**
-     * Get seat by bus and number
-     * GET /api/seats/bus/{busId}/number/{number}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/bus/{busId}/number/{number}")
     public ResponseEntity<SeatResponse> getByBusAndNumber(
             @PathVariable Long busId,
@@ -94,20 +74,14 @@ public class SeatController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * List seats by bus ordered by number
-     * GET /api/seats/bus/{busId}/ordered
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/bus/{busId}/ordered")
     public ResponseEntity<List<SeatResponse>> listByBusOrdered(@PathVariable Long busId) {
         List<SeatResponse> seats = seatService.listByBusIdOrderByNumberAsc(busId);
         return ResponseEntity.ok(seats);
     }
 
-    /**
-     * Count seats by bus
-     * GET /api/seats/bus/{busId}/count
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/bus/{busId}/count")
     public ResponseEntity<Long> countByBus(@PathVariable Long busId) {
         Long count = seatService.countByBusId(busId);

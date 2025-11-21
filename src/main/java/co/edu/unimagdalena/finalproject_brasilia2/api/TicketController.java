@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -22,20 +23,14 @@ public class TicketController {
 
     private final TicketService ticketService;
 
-    /**
-     * Create (purchase) a new ticket
-     * POST /api/tickets
-     */
+    @PreAuthorize("hasAnyRole('PASSENGER', 'CLERK', 'ADMIN')")
     @PostMapping
     public ResponseEntity<TicketResponse> create(@Valid @RequestBody TicketCreateRequest request) {
         TicketResponse response = ticketService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update ticket
-     * PUT /api/tickets/{id}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<TicketResponse> update(
             @PathVariable Long id,
@@ -44,60 +39,42 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get ticket by ID
-     * GET /api/tickets/{id}
-     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> get(@PathVariable Long id) {
         TicketResponse response = ticketService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete ticket
-     * DELETE /api/tickets/{id}
-     */
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         ticketService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Get ticket by QR code
-     * GET /api/tickets/qr/{qrCode}
-     */
+    @PreAuthorize("hasAnyRole('DRIVER', 'CLERK', 'ADMIN')")
     @GetMapping("/qr/{qrCode}")
     public ResponseEntity<TicketResponse> getByQr(@PathVariable String qrCode) {
         TicketResponse response = ticketService.getByQrCode(qrCode);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get tickets by passenger
-     * GET /api/tickets/passenger/{passengerId}
-     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/passenger/{passengerId}")
     public ResponseEntity<List<TicketResponse>> getByPassenger(@PathVariable Long passengerId) {
         List<TicketResponse> tickets = ticketService.listByPassengerId(passengerId);
         return ResponseEntity.ok(tickets);
     }
 
-    /**
-     * Get tickets by trip
-     * GET /api/tickets/trip/{tripId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'CLERK', 'ADMIN')")
     @GetMapping("/trip/{tripId}")
     public ResponseEntity<List<TicketResponse>> getByTrip(@PathVariable Long tripId) {
         List<TicketResponse> tickets = ticketService.listByTripId(tripId);
         return ResponseEntity.ok(tickets);
     }
 
-    /**
-     * Get tickets by payment method
-     * GET /api/tickets/payment/{method}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DISPATCHER', 'ADMIN')")
     @GetMapping("/payment/{method}")
     public ResponseEntity<Page<TicketResponse>> getByPaymentMethod(
             @PathVariable PaymentMethod method,
@@ -106,10 +83,7 @@ public class TicketController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get tickets by status
-     * GET /api/tickets/status/{status}
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'DISPATCHER', 'ADMIN')")
     @GetMapping("/status/{status}")
     public ResponseEntity<Page<TicketResponse>> getByStatus(
             @PathVariable TicketStatus status,
@@ -118,10 +92,7 @@ public class TicketController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get tickets between stops
-     * GET /api/tickets/stops?from=1&to=3
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/stops")
     public ResponseEntity<Page<TicketResponse>> getBetweenStops(
             @RequestParam(required = false) Long from,
@@ -131,20 +102,14 @@ public class TicketController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get total spent by passenger
-     * GET /api/tickets/passenger/{passengerId}/total
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @GetMapping("/passenger/{passengerId}/total")
     public ResponseEntity<BigDecimal> getTotalByPassenger(@PathVariable Long passengerId) {
         BigDecimal total = ticketService.getTotalByPassengerId(passengerId);
         return ResponseEntity.ok(total);
     }
 
-    /**
-     * Cancel ticket
-     * POST /api/tickets/{id}/cancel
-     */
+    @PreAuthorize("hasAnyRole('PASSENGER', 'CLERK', 'ADMIN')")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<TicketResponse> cancel(@PathVariable Long id) {
         TicketResponse response = ticketService.cancel(id);

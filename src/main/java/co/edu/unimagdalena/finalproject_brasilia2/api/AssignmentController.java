@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,20 +18,14 @@ public class AssignmentController {
 
     private final AssignmentService assignmentService;
 
-    /**
-     * Create new assignment (assign driver/dispatcher to trip)
-     * POST /api/assignments
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<AssignmentResponse> create(@Valid @RequestBody AssignmentCreateRequest request) {
         AssignmentResponse response = assignmentService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update assignment
-     * PUT /api/assignments/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<AssignmentResponse> update(
             @PathVariable Long id,
@@ -39,40 +34,28 @@ public class AssignmentController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get assignment by ID
-     * GET /api/assignments/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<AssignmentResponse> get(@PathVariable Long id) {
         AssignmentResponse response = assignmentService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete assignment
-     * DELETE /api/assignments/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         assignmentService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Approve checklist for assignment
-     * POST /api/assignments/{id}/approve-checklist
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PostMapping("/{id}/approve-checklist")
     public ResponseEntity<AssignmentResponse> approveChecklist(@PathVariable Long id) {
         AssignmentResponse response = assignmentService.approveChecklist(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get assignments by trip ID
-     * GET /api/assignments/trip/{tripId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'ADMIN')")
     @GetMapping("/trip/{tripId}")
     public ResponseEntity<Page<AssignmentResponse>> getByTrip(
             @PathVariable Long tripId,
@@ -81,10 +64,7 @@ public class AssignmentController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get assignments by driver ID
-     * GET /api/assignments/driver/{driverId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'DRIVER', 'ADMIN')")
     @GetMapping("/driver/{driverId}")
     public ResponseEntity<Page<AssignmentResponse>> getByDriver(
             @PathVariable Long driverId,
@@ -92,5 +72,4 @@ public class AssignmentController {
         Page<AssignmentResponse> page = assignmentService.getByDriverId(driverId, pageable);
         return ResponseEntity.ok(page);
     }
-
 }

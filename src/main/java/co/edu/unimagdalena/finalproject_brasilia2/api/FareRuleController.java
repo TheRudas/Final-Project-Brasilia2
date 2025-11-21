@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -20,20 +21,14 @@ public class FareRuleController {
 
     private final FareRuleService fareRuleService;
 
-    /**
-     * Create fare rule
-     * POST /api/fare-rules
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<FareRuleResponse> create(@Valid @RequestBody FareRuleCreateRequest request) {
         FareRuleResponse response = fareRuleService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update fare rule
-     * PUT /api/fare-rules/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<FareRuleResponse> update(
             @PathVariable Long id,
@@ -42,30 +37,21 @@ public class FareRuleController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get fare rule by ID
-     * GET /api/fare-rules/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<FareRuleResponse> get(@PathVariable Long id) {
         FareRuleResponse response = fareRuleService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete fare rule
-     * DELETE /api/fare-rules/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         fareRuleService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Get fare rules by route
-     * GET /api/fare-rules/route/{routeId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/route/{routeId}")
     public ResponseEntity<Page<FareRuleResponse>> getByRoute(
             @PathVariable Long routeId,
@@ -74,10 +60,7 @@ public class FareRuleController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get fare rules by origin stop
-     * GET /api/fare-rules/from-stop/{stopId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/from-stop/{stopId}")
     public ResponseEntity<Page<FareRuleResponse>> getByFromStop(
             @PathVariable Long stopId,
@@ -86,10 +69,7 @@ public class FareRuleController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Get fare rules by destination stop
-     * GET /api/fare-rules/to-stop/{stopId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/to-stop/{stopId}")
     public ResponseEntity<Page<FareRuleResponse>> getByToStop(
             @PathVariable Long stopId,
@@ -98,10 +78,7 @@ public class FareRuleController {
         return ResponseEntity.ok(page);
     }
 
-    /**
-     * Calculate ticket price
-     * GET /api/fare-rules/calculate?tripId=1&fromStopId=2&toStopId=5&passengerType=ADULT
-     */
+    // ✅ PÚBLICO: Para que usuarios vean precios antes de comprar
     @GetMapping("/calculate")
     public ResponseEntity<BigDecimal> calculatePrice(
             @RequestParam Long tripId,

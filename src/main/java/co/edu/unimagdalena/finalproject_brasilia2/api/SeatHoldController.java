@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,60 +18,42 @@ public class SeatHoldController {
 
     private final SeatHoldService seatHoldService;
 
-    /**
-     * Create (hold) a seat
-     * POST /api/seat-holds
-     */
+    @PreAuthorize("hasAnyRole('PASSENGER', 'CLERK', 'ADMIN')")
     @PostMapping
     public ResponseEntity<SeatHoldResponse> create(@Valid @RequestBody SeatHoldCreateRequest request) {
         SeatHoldResponse response = seatHoldService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Get seat hold by ID
-     * GET /api/seat-holds/{id}
-     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public ResponseEntity<SeatHoldResponse> get(@PathVariable Long id) {
         SeatHoldResponse response = seatHoldService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * List seat holds by trip
-     * GET /api/seat-holds/trip/{tripId}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/trip/{tripId}")
     public ResponseEntity<List<SeatHoldResponse>> listByTrip(@PathVariable Long tripId) {
         List<SeatHoldResponse> holds = seatHoldService.listByTripId(tripId);
         return ResponseEntity.ok(holds);
     }
 
-    /**
-     * List seat holds by user
-     * GET /api/seat-holds/user/{userId}
-     */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<SeatHoldResponse>> listByUser(@PathVariable Long userId) {
         List<SeatHoldResponse> holds = seatHoldService.listByUserId(userId);
         return ResponseEntity.ok(holds);
     }
 
-    /**
-     * Expire a specific seat hold
-     * POST /api/seat-holds/{id}/expire
-     */
+    @PreAuthorize("hasAnyRole('CLERK', 'ADMIN')")
     @PostMapping("/{id}/expire")
     public ResponseEntity<Void> expire(@PathVariable Long id) {
         seatHoldService.expire(id);
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * Expire all expired seat holds (manual trigger)
-     * POST /api/seat-holds/expire-all
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PostMapping("/expire-all")
     public ResponseEntity<Void> expireAll() {
         seatHoldService.expireAll();

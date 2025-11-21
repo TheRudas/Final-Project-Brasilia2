@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -18,20 +19,14 @@ public class ConfigController {
 
     private final ConfigService configService;
 
-    /**
-     * Create configuration
-     * POST /api/config
-     */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ConfigResponse> create(@Valid @RequestBody ConfigCreateRequest request) {
         ConfigResponse response = configService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update configuration
-     * PUT /api/config/{key}
-     */
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{key}")
     public ResponseEntity<ConfigResponse> update(
             @PathVariable String key,
@@ -40,40 +35,28 @@ public class ConfigController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get configuration by key
-     * GET /api/config/{key}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/{key}")
     public ResponseEntity<ConfigResponse> get(@PathVariable String key) {
         ConfigResponse response = configService.get(key);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete configuration
-     * DELETE /api/config/{key}
-     */
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{key}")
     public ResponseEntity<Void> delete(@PathVariable String key) {
         configService.delete(key);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Get configuration value as BigDecimal
-     * GET /api/config/{key}/value
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping("/{key}/value")
     public ResponseEntity<BigDecimal> getValue(@PathVariable String key) {
         BigDecimal value = configService.getValue(key);
         return ResponseEntity.ok(value);
     }
 
-    /**
-     * List all configurations
-     * GET /api/config
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @GetMapping
     public ResponseEntity<List<ConfigResponse>> listAll() {
         List<ConfigResponse> configs = configService.listAll();

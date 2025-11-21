@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,20 +17,14 @@ public class BusController {
 
     private final BusService busService;
 
-    /**
-     * Create a new bus
-     * POST /api/buses
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<BusResponse> create(@Valid @RequestBody BusCreateRequest request) {
         BusResponse response = busService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update bus
-     * PUT /api/buses/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<BusResponse> update(
             @PathVariable Long id,
@@ -38,40 +33,28 @@ public class BusController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get bus by ID
-     * GET /api/buses/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<BusResponse> get(@PathVariable Long id) {
         BusResponse response = busService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete bus
-     * DELETE /api/buses/{id}
-     */
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         busService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Get bus by license plate
-     * GET /api/buses/plate/{plate}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/plate/{plate}")
     public ResponseEntity<BusResponse> getByPlate(@PathVariable String plate) {
         BusResponse response = busService.getByLicensePlate(plate);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get buses by capacity (greater than or equal)
-     * GET /api/buses/capacity/gte?capacity=40&page=0&size=10
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/capacity/gte")
     public ResponseEntity<Page<BusResponse>> getByCapacityGte(
             @RequestParam Integer capacity,
@@ -81,10 +64,7 @@ public class BusController {
         return ResponseEntity.ok(buses);
     }
 
-    /**
-     * Get buses by capacity (less than or equal)
-     * GET /api/buses/capacity/lte?capacity=30&page=0&size=10
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/capacity/lte")
     public ResponseEntity<Page<BusResponse>> getByCapacityLte(
             @RequestParam Integer capacity,
@@ -94,10 +74,7 @@ public class BusController {
         return ResponseEntity.ok(buses);
     }
 
-    /**
-     * Get buses by capacity range
-     * GET /api/buses/capacity/between?min=30&max=50&page=0&size=10
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'CLERK', 'ADMIN')")
     @GetMapping("/capacity/between")
     public ResponseEntity<Page<BusResponse>> getByCapacityBetween(
             @RequestParam Integer min,

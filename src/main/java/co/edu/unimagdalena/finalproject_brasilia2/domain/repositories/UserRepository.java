@@ -16,4 +16,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRole(UserRole role);
     Page<User> findByStatus(boolean status, Pageable pageable);
     List<User> findByRoleAndStatus(UserRole role, boolean status);
+
+    boolean existsByPhone(String phone);
+
+    boolean existsByEmail(String email);
 }

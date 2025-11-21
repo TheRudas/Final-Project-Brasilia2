@@ -2,6 +2,7 @@ package co.edu.unimagdalena.finalproject_brasilia2.security.service;
 
 import co.edu.unimagdalena.finalproject_brasilia2.domain.entities.User;
 import lombok.AllArgsConstructor;
+import lombok.Getter; // 1. Importar Getter
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,13 +11,14 @@ import java.util.Collection;
 import java.util.List;
 
 @AllArgsConstructor
+@Getter // 2. Agregar la anotación aquí
 public class UserDetailsImpl implements UserDetails {
 
+    // Lombok generará automáticamente: public User getUser() { return user; }
     private final User user;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Convierte el Rol de tu entidad a la autoridad de Spring
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 
@@ -50,8 +52,5 @@ public class UserDetailsImpl implements UserDetails {
         return user.isStatus();
     }
 
-    // Mét odo extra por si necesitas acceder a la entidad original
-    public User getUser() {
-        return user;
-    }
+    // 3. ¡Borramos el método getUser() manual! Ya no es necesario.
 }

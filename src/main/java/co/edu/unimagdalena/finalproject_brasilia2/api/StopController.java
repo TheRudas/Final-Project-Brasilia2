@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,20 +18,14 @@ public class StopController {
 
     private final StopService stopService;
 
-    /**
-     * Create a new stop
-     * POST /api/stops
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<StopResponse> create(@Valid @RequestBody StopCreateRequest request) {
         StopResponse response = stopService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Update stop
-     * PUT /api/stops/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<StopResponse> update(
             @PathVariable Long id,
@@ -39,60 +34,42 @@ public class StopController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get stop by ID
-     * GET /api/stops/{id}
-     */
+    // ✅ PÚBLICO: Para que usuarios vean paradas
     @GetMapping("/{id}")
     public ResponseEntity<StopResponse> get(@PathVariable Long id) {
         StopResponse response = stopService.get(id);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Delete stop
-     * DELETE /api/stops/{id}
-     */
+    @PreAuthorize("hasAnyRole('DISPATCHER', 'ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         stopService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Get stop by name (case insensitive)
-     * GET /api/stops/name/{name}
-     */
+    // ✅ PÚBLICO
     @GetMapping("/name/{name}")
     public ResponseEntity<StopResponse> getByName(@PathVariable String name) {
         StopResponse response = stopService.getByNameIgnoreCase(name);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * List stops by route
-     * GET /api/stops/route/{routeId}
-     */
+    // ✅ PÚBLICO: Ya está permitido en SecurityConfig
     @GetMapping("/route/{routeId}")
     public ResponseEntity<List<StopResponse>> listByRoute(@PathVariable Long routeId) {
         List<StopResponse> stops = stopService.listByRouteId(routeId);
         return ResponseEntity.ok(stops);
     }
 
-    /**
-     * List stops by route ordered by sequence
-     * GET /api/stops/route/{routeId}/ordered
-     */
+    // ✅ PÚBLICO
     @GetMapping("/route/{routeId}/ordered")
     public ResponseEntity<List<StopResponse>> listByRouteOrdered(@PathVariable Long routeId) {
         List<StopResponse> stops = stopService.listByRouteIdOrderByOrderAsc(routeId);
         return ResponseEntity.ok(stops);
     }
 
-    /**
-     * Get stop by route and name
-     * GET /api/stops/route/{routeId}/name/{name}
-     */
+    // ✅ PÚBLICO
     @GetMapping("/route/{routeId}/name/{name}")
     public ResponseEntity<StopResponse> getByRouteAndName(
             @PathVariable Long routeId,
@@ -101,10 +78,7 @@ public class StopController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get stop by route and order
-     * GET /api/stops/route/{routeId}/order/{order}
-     */
+    // ✅ PÚBLICO
     @GetMapping("/route/{routeId}/order/{order}")
     public ResponseEntity<StopResponse> getByRouteAndOrder(
             @PathVariable Long routeId,

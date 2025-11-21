@@ -8,22 +8,80 @@ import jakarta.validation.constraints.Size;
 
 public class AuthDtos {
 
+    /**
+     * Request for user registration
+     */
     public record RegisterRequest(
-            @NotBlank String name,        // En tu entidad se llama 'name', en la ref 'userName'
-            @NotBlank @Email String email,
-            @NotNull UserRole role,       // Tu Enum del proyecto
-            @NotBlank @Size(min = 8) String password,
-            @NotBlank String phone
+            @NotBlank(message = "Name is required")
+            String name,
+
+            @NotBlank(message = "Email is required")
+            @Email(message = "Email must be valid")
+            String email,
+
+            @NotNull(message = "Role is required")
+            UserRole role,
+
+            @NotBlank(message = "Password is required")
+            @Size(min = 8, message = "Password must be at least 8 characters")
+            String password,
+
+            @NotBlank(message = "Phone is required")
+            @Size(min = 10, max = 10, message = "Phone must be exactly 10 digits")
+            String phone
     ) {}
 
+    /**
+     * Request for user login
+     */
     public record LoginRequest(
-            @NotBlank @Email String email,
-            @NotBlank String password
+            @NotBlank(message = "Email is required")
+            @Email(message = "Email must be valid")
+            String email,
+
+            @NotBlank(message = "Password is required")
+            String password
     ) {}
 
+    /**
+     * Request for refreshing access token
+     */
+    public record RefreshTokenRequest(
+            @NotBlank(message = "Refresh token is required")
+            String refreshToken
+    ) {}
+
+    /**
+     * Authentication response with tokens and user info
+     */
     public record AuthResponse(
             String token,
+            String refreshToken,
             String tokenType,
-            String role // Cambiado de 'long' a 'String' porque tu rol es un Enum (ADMIN, DRIVER, etc.)
+            String role,
+            Long expiresIn,
+            UserInfo user
+    ) {
+        public static AuthResponse of(String token, String refreshToken, Long expiresIn, UserInfo user) {
+            return new AuthResponse(
+                    token,
+                    refreshToken,
+                    "Bearer",
+                    user.role().name(),
+                    expiresIn,
+                    user
+            );
+        }
+    }
+
+    /**
+     * User information DTO
+     */
+    public record UserInfo(
+            Long id,
+            String name,
+            String email,
+            String phone,
+            UserRole role
     ) {}
 }
