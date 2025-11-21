@@ -295,7 +295,7 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).origin()).isEqualTo("Bogotá");
+        assertThat(result.getFirst().origin()).isEqualTo("Bogotá");
         assertThat(result.get(1).origin()).isEqualTo("Bogotá");
 
         verify(routeRepository).findByOrigin("Bogotá");
@@ -334,7 +334,7 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).destination()).isEqualTo("Tunja");
+        assertThat(result.getFirst().destination()).isEqualTo("Tunja");
 
         verify(routeRepository).findByDestination("Tunja");
     }
@@ -358,8 +358,8 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).origin()).isEqualTo("Bogotá");
-        assertThat(result.get(0).destination()).isEqualTo("Tunja");
+        assertThat(result.getFirst().origin()).isEqualTo("Bogotá");
+        assertThat(result.getFirst().destination()).isEqualTo("Tunja");
 
         verify(routeRepository).findByOriginAndDestination("Bogotá", "Tunja");
     }
@@ -382,7 +382,7 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).durationMin()).isEqualTo(180);
+        assertThat(result.getFirst().durationMin()).isEqualTo(180);
 
         verify(routeRepository).findByDurationMinBetween(150, 200);
     }
@@ -408,7 +408,7 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).durationMin()).isEqualTo(120);
+        assertThat(result.getContent().getFirst().durationMin()).isEqualTo(120);
 
         verify(routeRepository).findByDurationMinLessThanEqual(150, pageable);
     }
@@ -434,7 +434,7 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).distanceKm()).isEqualByComparingTo(new BigDecimal("100"));
+        assertThat(result.getContent().getFirst().distanceKm()).isEqualByComparingTo(new BigDecimal("100"));
 
         verify(routeRepository).findByDistanceKmLessThanEqual(new BigDecimal("150"), pageable);
     }
@@ -460,7 +460,7 @@ class RouteServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).distanceKm()).isEqualByComparingTo(new BigDecimal("200"));
+        assertThat(result.getContent().getFirst().distanceKm()).isEqualByComparingTo(new BigDecimal("200"));
 
         verify(routeRepository).findByDistanceKmGreaterThanEqual(new BigDecimal("150"), pageable);
     }

@@ -223,7 +223,7 @@ class IncidentServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).entityType()).isEqualTo(IncidentEntityType.TRIP);
+        assertThat(result.getFirst().entityType()).isEqualTo(IncidentEntityType.TRIP);
         assertThat(result.get(1).entityType()).isEqualTo(IncidentEntityType.TRIP);
 
         verify(incidentRepository).findByEntityType(IncidentEntityType.TRIP);
@@ -263,7 +263,7 @@ class IncidentServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).entityId()).isEqualTo(10L);
+        assertThat(result.getFirst().entityId()).isEqualTo(10L);
 
         verify(incidentRepository).findByEntityId(10L);
     }
@@ -288,7 +288,7 @@ class IncidentServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).type()).isEqualTo(IncidentType.SECURITY);
+        assertThat(result.getFirst().type()).isEqualTo(IncidentType.SECURITY);
 
         verify(incidentRepository).findByType(IncidentType.SECURITY);
     }
@@ -331,7 +331,7 @@ class IncidentServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).id()).isEqualTo(100L);
+        assertThat(result.getFirst().id()).isEqualTo(100L);
 
         verify(incidentRepository).findByCreatedAtBetween(start, end);
     }

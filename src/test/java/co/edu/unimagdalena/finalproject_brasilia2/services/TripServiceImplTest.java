@@ -549,7 +549,7 @@ class TripServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).routeId()).isEqualTo(1L);
+        assertThat(result.getFirst().routeId()).isEqualTo(1L);
 
         verify(tripRepository).findByRouteId(1L);
     }

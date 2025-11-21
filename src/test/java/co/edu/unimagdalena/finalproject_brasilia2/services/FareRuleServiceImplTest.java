@@ -312,7 +312,7 @@ class FareRuleServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).id()).isEqualTo(100L);
+        assertThat(result.getContent().getFirst().id()).isEqualTo(100L);
 
         verify(repository).findByRouteId(1L, pageable);
     }
@@ -356,7 +356,7 @@ class FareRuleServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).fromStopId()).isEqualTo(10L);
+        assertThat(result.getContent().getFirst().fromStopId()).isEqualTo(10L);
 
         verify(repository).findByFromStopId(10L, pageable);
     }
@@ -386,7 +386,7 @@ class FareRuleServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).toStopId()).isEqualTo(11L);
+        assertThat(result.getContent().getFirst().toStopId()).isEqualTo(11L);
 
         verify(repository).findByToStopId(11L, pageable);
     }

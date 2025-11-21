@@ -523,7 +523,7 @@ class TicketServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).passengerId()).isEqualTo(5L);
+        assertThat(result.getFirst().passengerId()).isEqualTo(5L);
         assertThat(result.get(1).passengerId()).isEqualTo(5L);
 
         verify(ticketRepository).findByPassengerId(5L);
@@ -545,7 +545,7 @@ class TicketServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).tripId()).isEqualTo(100L);
+        assertThat(result.getFirst().tripId()).isEqualTo(100L);
 
         verify(ticketRepository).findByTripId(100L);
     }
@@ -574,7 +574,7 @@ class TicketServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).paymentMethod()).isEqualTo(PaymentMethod.CASH);
+        assertThat(result.getContent().getFirst().paymentMethod()).isEqualTo(PaymentMethod.CASH);
 
         verify(ticketRepository).findByPaymentMethod(PaymentMethod.CASH, pageable);
     }
@@ -603,7 +603,7 @@ class TicketServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).status()).isEqualTo(TicketStatus.SOLD);
+        assertThat(result.getContent().getFirst().status()).isEqualTo(TicketStatus.SOLD);
 
         verify(ticketRepository).findByStatus(TicketStatus.SOLD, pageable);
     }

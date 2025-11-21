@@ -305,7 +305,7 @@ class SeatServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).busId()).isEqualTo(1L);
+        assertThat(result.getFirst().busId()).isEqualTo(1L);
         assertThat(result.get(1).busId()).isEqualTo(1L);
 
         verify(seatRepository).findByBusId(1L);
@@ -344,7 +344,7 @@ class SeatServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).seatType()).isEqualTo(SeatType.PREFERENTIAL);
+        assertThat(result.getFirst().seatType()).isEqualTo(SeatType.PREFERENTIAL);
 
         verify(seatRepository).findByBusIdAndSeatType(1L, SeatType.PREFERENTIAL);
     }
@@ -388,7 +388,7 @@ class SeatServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).number()).isEqualTo("A1");
+        assertThat(result.getFirst().number()).isEqualTo("A1");
         assertThat(result.get(1).number()).isEqualTo("A2");
 
         verify(seatRepository).findByBusIdOrderByNumberAsc(1L);

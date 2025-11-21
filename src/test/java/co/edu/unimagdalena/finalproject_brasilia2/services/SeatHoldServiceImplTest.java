@@ -280,7 +280,7 @@ class SeatHoldServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).tripId()).isEqualTo(10L);
+        assertThat(result.getFirst().tripId()).isEqualTo(10L);
         assertThat(result.get(1).tripId()).isEqualTo(10L);
 
         verify(seatHoldRepository).findByTripId(10L);
@@ -316,7 +316,7 @@ class SeatHoldServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).userId()).isEqualTo(5L);
+        assertThat(result.getFirst().userId()).isEqualTo(5L);
 
         verify(seatHoldRepository).findByUserId(5L);
     }

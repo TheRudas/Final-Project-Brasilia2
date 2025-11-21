@@ -265,7 +265,7 @@ class UserServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getContent().get(0).name()).isEqualTo("User 1");
+        assertThat(result.getContent().getFirst().name()).isEqualTo("User 1");
 
         verify(userRepository).findAll(pageable);
     }
@@ -305,7 +305,7 @@ class UserServiceImplTest {
 
         // Then
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).role()).isEqualTo(UserRole.DRIVER);
+        assertThat(result.getFirst().role()).isEqualTo(UserRole.DRIVER);
         assertThat(result.get(1).role()).isEqualTo(UserRole.DRIVER);
 
         verify(userRepository).findByRole(UserRole.DRIVER);
@@ -364,7 +364,7 @@ class UserServiceImplTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).status()).isTrue();
+        assertThat(result.getFirst().status()).isTrue();
 
         verify(userRepository).findByRoleAndStatus(UserRole.DRIVER, true);
     }
@@ -389,7 +389,7 @@ class UserServiceImplTest {
 
         // Then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).status()).isTrue();
+        assertThat(result.getContent().getFirst().status()).isTrue();
 
         verify(userRepository).findByStatus(true, pageable);
     }
